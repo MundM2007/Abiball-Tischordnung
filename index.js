@@ -1,8 +1,13 @@
 const addTableButton = document.getElementById('add_table_button');
+const exportButton = document.getElementById('export_button');
+const importButton = document.getElementById('import_button');
+const importFileInput = document.getElementById('import_file');
 let tableCount = 0;
 let tableNextId = 0;
 
-addTableButton.addEventListener('click', spawnTable);
+addTableButton.addEventListener('click', createTable);
+exportButton.addEventListener('click', downloadLayoutFile);
+importButton.addEventListener('click', importLayout);
 
 function tableEndLeft(){
     // create left end of table image
@@ -31,48 +36,58 @@ function tableMiddle(){
 }
 
 
-function spawnTable(_e) {
+function createTable(_e) {
     // Prompt user for table length
-    let lengthOfTable = window.prompt("Geben Sie die Länge des Tisches an:", "3");
-    if (lengthOfTable === null) return; // User cancelled the prompt
-    if (isNaN(lengthOfTable) || parseInt(lengthOfTable) < 2) {alert("Bitte geben Sie eine gültige Zahl (>=2) ein."); return;}
-    lengthOfTable = parseInt(lengthOfTable);
-
-    // create table elements
-    let table = document.createElement("div");
-    table.setAttribute("id", "table-" + tableNextId);
-    table.setAttribute("class", "table");
-    document.getElementById("tables_container").appendChild(table);
-
-    // internal table wrapper
-    let tableWrapper = document.createElement("div");
-    tableWrapper.setAttribute("id", "table_wrapper-" + tableNextId);
-    tableWrapper.setAttribute("class", "table_wrapper");
-    table.appendChild(tableWrapper);
-
-    tableWrapper.appendChild(tableEndLeft());
-    for (let i = 0; i < lengthOfTable - 2; i++) {
-        tableWrapper.appendChild(tableMiddle());
+    let length = window.prompt("Geben Sie die Länge des Tisches an:", "3");
+    if (length === null) return; // User cancelled the prompt
+    length = Number(length)
+    if (!Number.isInteger(length) || length < 2) {
+        alert("Bitte geben Sie eine gültige Zahl (>=2) ein."); 
+        return;
     }
-    tableWrapper.appendChild(tableEndRight(true));
 
     // add table
-    spawnTableButton(table);
+    addTable(tableNextId, length);
+    addTableInteractionButton(tableNextId);
     tableCount++;
     tableNextId++;
 }
 
 
-function spawnTableButton(table){
+function addTable(id, length, posLeft = "100px", posTop = "200px", rotation = ""){
+    // create table elements
+    let table = document.createElement("div");
+    table.setAttribute("id", "table-" + id);
+    table.setAttribute("class", "table");
+    document.getElementById("tables_container").appendChild(table);
+
+    // internal table wrapper
+    let tableWrapper = document.createElement("div");
+    tableWrapper.setAttribute("id", "table_wrapper-" + id);
+    tableWrapper.setAttribute("class", "table_wrapper");
+    table.appendChild(tableWrapper);
+
+    tableWrapper.appendChild(tableEndLeft());
+    for (let i = 0; i < length - 2; i++) {
+        tableWrapper.appendChild(tableMiddle());
+    }
+    tableWrapper.appendChild(tableEndRight());
+
+    table.style.left = posLeft;
+    table.style.top = posTop;
+    tableWrapper.style.transform = rotation;
+}
+
+
+function addTableInteractionButton(id){
     // add button
+    let table = document.getElementById("table-" + id);
     let button = document.createElement("button");
-    button.setAttribute("id", "table_interaction_button-" + tableNextId);
+    button.setAttribute("id", "table_interaction_button-" + id);
     button.setAttribute("class", "table_interaction_button small_table_interaction_button hide_on_action");
     table.appendChild(button);
 
-    // set position, handle click
-    button.style.left = table.offsetWidth / 2 - 13 + "px";
-    button.style.top = "37px";
+    // handle click
     button.dataset.clicked = "false";
     button.addEventListener('click', handleTableInteraction);
 }
@@ -90,7 +105,7 @@ function toggleTableInteractionState(button){
         button.style.backgroundImage = "url('./icons/cross_grey_circle.svg')";
 
         // disable other interaction button
-        if(document.getElementById("rotate_button")) {
+        if(document.getElementById("rotate_button") !== null){
             toggleTableInteractionState(
                 document.getElementById("table_interaction_button-" + document.getElementById("rotate_button").parentElement.id.split("-")[1])
             );
@@ -125,18 +140,7 @@ function createActionButtonsForTable(button){
     table.appendChild(moveButton);
     table.appendChild(deleteButton);
 
-    // set positions and background images
-    rotateButton.style.left = table.offsetWidth / 2 - 70 + "px";
-    rotateButton.style.top = "-10px";
-    rotateButton.style.backgroundImage = "url('./icons/rotate_black_circle.svg')";
-
-    moveButton.style.left = table.offsetWidth / 2 - 20 + "px";
-    moveButton.style.top = "-30px";
-    moveButton.style.backgroundImage = "url('./icons/move_black_circle.svg')";
-
-    deleteButton.style.left = table.offsetWidth / 2 + 30 + "px";
-    deleteButton.style.top = "-10px";
-    deleteButton.style.backgroundImage = "url('./icons/cross_red_circle.svg')";
+    // positions and background images are handled via CSS
 
     // add event listeners for buttons
     rotateButton.addEventListener('click', rotateTableButtonClick);
@@ -277,7 +281,124 @@ function deleteTableButtonClick(_e){
 
 // remove action buttons
 function removeActionButtons(){
-    document.getElementById("rotate_button").remove();
-    document.getElementById("move_button").remove();
-    document.getElementById("delete_button").remove();
+    if(document.getElementById("rotate_button")) document.getElementById("rotate_button").remove();
+    if(document.getElementById("move_button")) document.getElementById("move_button").remove();
+    if(document.getElementById("delete_button")) document.getElementById("delete_button").remove();
+}
+
+
+function verifyJSON(json){
+    if(!json || !Array.isArray(json.tables) || !json.hasOwnProperty('tableCount') || !json.hasOwnProperty('tableNextId')){
+        alert("Ungültige Layout-Daten.");
+        return false;
+    }
+    for(let i = 0; i < json.tables.length; i++){
+        let table = json.tables[i];
+        if(!table.hasOwnProperty('id') ||  !table.hasOwnProperty('length')){
+            alert("Ungültige Layout-Daten.");
+            return false;
+        }
+    }
+    return true;
+}
+
+
+async function importLayout(_e){
+    // confirm replacement, and remove existing tables
+    if(window.confirm("Das aktuelle Layout wird durch das importierte Layout ersetzt. Möchten Sie fortfahren?")){
+        for(let i = 0; i < tableNextId; i++){
+            let element = document.getElementById("table-" + i);
+            if (element) element.remove();
+        }
+        
+        // read and verify layout data
+        let json = await readLayoutFile();
+        if(!json) return;
+        if(!verifyJSON(json)) return;
+
+        // recreate layout, set counters
+        tableCount = json.tableCount;
+        tableNextId = json.tableNextId;
+        for(let i = 0; i < json.tables.length; i++){
+            let table = json.tables[i];
+            addTable(
+                table.id, 
+                table.length, 
+                table.position?.left ?? "100px",
+                table.position?.top ?? "200px", 
+                table.rotation ?? "");
+            addTableInteractionButton(table.id);
+        }
+    }
+} 
+
+
+async function readLayoutFile(){
+    // get first file uploaded, end if none are
+    const file = importFileInput.files[0];
+    if(!file){
+        alert("Bitte wählen Sie eine Datei zum Importieren aus.");
+        return null;
+    }
+
+    // read the file and parse JSON
+    try {
+        const text = await file.text();
+        return JSON.parse(text);
+    } catch (error) {
+        if (error instanceof SyntaxError) {
+            alert("Ungültiges JSON: " + error.message);
+        } else {
+            alert("Fehler beim Lesen der Datei: " + error.message);
+        }
+        return null;
+    }
+}
+
+
+function exportLayout(){
+    // export data as JSON file, first add general information
+    let layoutData = {
+        tables: [],
+        tableCount: tableCount,
+        tableNextId: tableNextId
+    };
+    // then add each table's data
+    for(let i = 0; i < tableNextId; i++){
+        let table = document.getElementById("table-" + i);
+        if(table){
+            layoutData.tables.push({
+                id: i,
+                position: {
+                    left: table.style.left,
+                    top: table.style.top
+                },
+                rotation: table.firstChild.style.transform,
+                length: table.firstChild.children.length
+            });
+        }
+    }
+    return layoutData;
+}
+
+
+function downloadLayoutFile(_e) {
+    let file = new File([JSON.stringify(exportLayout())], "Tisch-Layout.json")
+
+    // Create a link and set the URL using `createObjectURL`
+    const link = document.createElement('a');
+    link.style.display = 'none';
+    link.href = URL.createObjectURL(file);
+    link.download = file.name;
+
+    // It needs to be added to the DOM so it can be clicked
+    document.body.appendChild(link);
+    link.click();
+
+    // To make this work on Firefox we need to wait
+    // a little while before removing it.
+    setTimeout(() => {
+        URL.revokeObjectURL(link.href);
+        link.parentNode.removeChild(link);
+    }, 0);
 }

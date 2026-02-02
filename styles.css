@@ -16,8 +16,6 @@
 .table {
     white-space: nowrap;
     position: absolute;
-    left: 200px;
-    top: 500px;
 }
 
 .table_wrapper {
@@ -37,6 +35,7 @@
     position: absolute;
     width: 40px;
     height: 40px;
+    left: 50%;
     background-size: cover;
     background-color: white;
     border-color: black;
@@ -53,5 +52,25 @@
 .small_table_interaction_button {
     width: 26px;
     height: 26px;
+    top: 37px;
+    transform: translateX(-50%);
     border-radius: 13px;
+}
+
+#rotate_button {
+    top: -10px;
+    transform: translateX(-70px);
+    background-image: url("./icons/rotate_black_circle.svg");
+}
+
+#move_button {
+    top: -30px;
+    transform: translateX(-50%);
+    background-image: url("./icons/move_black_circle.svg");
+}
+
+#delete_button {
+    top: -10px;
+    transform: translateX(30px);
+    background-image: url("./icons/cross_red_circle.svg");
 }

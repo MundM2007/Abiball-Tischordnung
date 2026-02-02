@@ -14,10 +14,15 @@
   </head>
   <body>
     <main>
-        <h1>Abiball-Tischordnung</h1>  
+        <h1>Abiball-Tischordnung</h1>
+        <input type="file" id="import_file" accept=".json"/>
+        <button type="button" id="import_button">Import</button> 
+        <button type="button" id="export_button">Export</button> 
+        <br>
+        <p></p>
+        <button type="button" id="add_table_button"></button>
+        <div id="tables_container"></div>
     </main>
-    <button type="button" id="add_table_button"></button>
-    <div id="tables_container"></div>
     <script src="index.js"></script>
   </body>
 </html>
