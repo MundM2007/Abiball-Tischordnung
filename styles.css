@@ -20,15 +20,38 @@
     top: 500px;
 }
 
+.table_wrapper {
+    display: inline-flex;
+}
+
 .table_segment {
     -webkit-user-drag: none;
     user-select: none;
     -moz-user-select: none;
     -webkit-user-select: none;
     -ms-user-select: none;
-    height: 72px;
+    height: 100px;
 }
 
-.table_end_rotate {
-    rotate: 180deg;
+.table_interaction_button {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background-size: cover;
+    background-color: white;
+    border-color: black;
+    border-radius: 20px;
+    border-width: 2px;
+    z-index: 10;
+    -webkit-user-drag: none;
+    user-select: none;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+}
+
+.small_table_interaction_button {
+    width: 26px;
+    height: 26px;
+    border-radius: 13px;
 }
