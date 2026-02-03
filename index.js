@@ -42,8 +42,8 @@ function createTable(_e) {
     let length = window.prompt("Geben Sie die Länge des Tisches an:", "3");
     if (length === null) return; // User cancelled the prompt
     length = Number(length);
-    if (!Number.isInteger(length) || length < 2) {
-        alert("Bitte geben Sie eine gültige Zahl (>=2) ein."); 
+    if (!Number.isInteger(length) || length < 2 || length > 100) {
+        alert("Bitte geben Sie eine gültige Zahl (>=2, <=100) ein."); 
         return;
     }
 
