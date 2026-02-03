@@ -449,6 +449,7 @@ async function importLayout(_e){
             );
             addTableInteractionButton(table.id);
             addTableNumberInformation(table.id, table.number ?? "null")
+            updateTableNumbers();
         }
     }
 } 
