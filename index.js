@@ -96,7 +96,7 @@ function addTableInteractionButton(id){
 }
 
 
-function addTableNumberInformation(id){
+function addTableNumberInformation(id, number="null"){
     // create table number information element
     let tableNumberInformation = document.createElement("p");
     tableNumberInformation.setAttribute("id", "table_number_information-" + id);
@@ -105,7 +105,7 @@ function addTableNumberInformation(id){
     // add to table
     let table = document.getElementById("table-" + id);
     table.appendChild(tableNumberInformation);
-    table.dataset.number = null;
+    table.dataset.number = number;
 }
 
 
@@ -445,8 +445,10 @@ async function importLayout(_e){
                 table.length, 
                 table.position?.left ?? "100px",
                 table.position?.top ?? "200px", 
-                table.rotation ?? "rotate(0deg)");
+                table.rotation ?? "rotate(0deg)"
+            );
             addTableInteractionButton(table.id);
+            addTableNumberInformation(table.id, table.number ?? "null")
         }
     }
 } 
@@ -488,6 +490,7 @@ function exportLayout(){
         if(table){
             layoutData.tables.push({
                 id: i,
+                number: table.dataset.number,
                 position: {
                     left: table.style.left,
                     top: table.style.top
