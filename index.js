@@ -1,9 +1,13 @@
+const tableSegmentHeight = 100;
+const tableMiddleSegmentWidth = tableSegmentHeight * 70 / 230;
+
 const addTableButton = document.getElementById('add_table_button');
 const exportButton = document.getElementById('export_button');
 const importButton = document.getElementById('import_button');
 const importFileInput = document.getElementById('import_file');
 let tableCount = 0;
 let tableNextId = 0;
+
 
 addTableButton.addEventListener('click', createTable);
 exportButton.addEventListener('click', downloadLayoutFile);
@@ -51,6 +55,7 @@ function createTable(_e) {
     addTable(tableNextId, length);
     addTableInteractionButton(tableNextId);
     addTableNumberInformation(tableNextId);
+    addSeatInteractionButtons(tableNextId);
     tableCount++;
     tableNextId++;
     updateTableNumbers();
@@ -70,11 +75,16 @@ function addTable(id, length, posLeft = "100px", posTop = "200px", rotation = "r
     tableWrapper.setAttribute("class", "table_wrapper");
     table.appendChild(tableWrapper);
 
-    tableWrapper.appendChild(tableEndLeft());
+    let tableSegmentWrapper = document.createElement("div");
+    tableSegmentWrapper.setAttribute("id", "table_segment_wrapper-" + id)
+    tableSegmentWrapper.setAttribute("class", "table_segment_wrapper");
+    tableWrapper.appendChild(tableSegmentWrapper)
+
+    tableSegmentWrapper.appendChild(tableEndLeft());
     for(let i = 0; i < length - 2; i++) {
-        tableWrapper.appendChild(tableMiddle());
+        tableSegmentWrapper.appendChild(tableMiddle());
     }
-    tableWrapper.appendChild(tableEndRight());
+    tableSegmentWrapper.appendChild(tableEndRight());
 
     table.style.left = posLeft;
     table.style.top = posTop;
@@ -109,6 +119,28 @@ function addTableNumberInformation(id, number="null"){
 }
 
 
+function addSeatInteractionButtons(id){
+    let table = document.getElementById("table-" + id);
+    let length = table.firstChild.firstChild.children.length;
+    for(let i = 0; i < length; i++){
+        for(let j = 0; j < 2; j++){
+            let div = document.createElement("div");
+            div.setAttribute("id", "seat_interaction_button_wrapper-" + (i*2+j));
+            div.setAttribute("class", "seat_interaction_button_wrapper hide_on_action");
+            table.firstChild.appendChild(div);
+            div.style.transform = 
+                `translateX(${Math.round(tableMiddleSegmentWidth*(i-((length-1)/2)))-7}px) ` + 
+                `translateY(${j*80-47}px)`;
+
+            let button = document.createElement("button");
+            button.setAttribute("id", "seat_interaction_button-" + (i*2+j));
+            button.setAttribute("class", "seat_interaction_button");
+            div.appendChild(button);
+        }
+    }
+}
+
+
 function handleTableInteraction(_e){
     toggleTableInteractionState(document.getElementById(this.id), true);
 }
@@ -129,7 +161,7 @@ function toggleTableInteractionState(button, removeInformation = true){
                 true
             );
         }
-        
+
         // update table number information element to show manual/automatic
         let tableNumberInformation = document.getElementById("table_number_information-" + id);
         if(table.dataset.number==="null"){
@@ -138,6 +170,7 @@ function toggleTableInteractionState(button, removeInformation = true){
             tableNumberInformation.innerText = tableNumberInformation.innerText + " (Manuell)";
         }
 
+        hideAllSeatInteractionButtons();
         createActionButtonsForTable(button);
     }else{
         // reset interaction button
@@ -148,6 +181,7 @@ function toggleTableInteractionState(button, removeInformation = true){
         let tableNumberInformation = document.getElementById("table_number_information-" + id);
         tableNumberInformation.innerText = tableNumberInformation.innerText.replace(" (Automatisch)", "").replace(" (Manuell)", "");
 
+        showAllSeatInteractionButtons();
         removeActionButtons(removeInformation);
     }
 }
@@ -199,10 +233,26 @@ function hideAllActionButtons(){
 }
 
 
+function hideAllSeatInteractionButtons(){
+    let seatInteractionButtons = document.querySelectorAll(".seat_interaction_button_wrapper");
+    for(let i = 0; i < seatInteractionButtons.length; i++){
+        seatInteractionButtons[i].style.display = "none";
+    }
+}
+
+
 function showAllActionButtons(){
     let actionButtons = document.querySelectorAll(".hide_on_action");
     for(let i = 0; i < actionButtons.length; i++){
         actionButtons[i].style.display = "inline-block";
+    }
+}
+
+
+function showAllSeatInteractionButtons(){
+    let seatInteractionButtons = document.querySelectorAll(".seat_interaction_button_wrapper");
+    for(let i = 0; i < seatInteractionButtons.length; i++){
+        seatInteractionButtons[i].style.display = "inline-flex";
     }
 }
 
@@ -374,7 +424,7 @@ function updateTableInformation(table, addNumberInfo){
     let tableInformation = document.getElementById("table_information");
     if(tableInformation !== null){
         tableInformation.innerText = 
-            `PosX: ${table.style.left}, PosY: ${table.style.top},\n` + 
+            `X: ${table.style.left}, Y: ${table.style.top},\n` + 
             `Rotation: ${table.firstChild.style.transform.replace("rotate(", "").replace("deg)", "")}°`;
     }
 }
@@ -497,7 +547,7 @@ function exportLayout(){
                     top: table.style.top
                 },
                 rotation: table.firstChild.style.transform,
-                length: table.firstChild.children.length
+                length: table.firstChild.firstChild.children.length
             });
         }
     }

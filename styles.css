@@ -20,6 +20,11 @@
 }
 
 .table_wrapper {
+    display: inline-flex
+}
+
+
+.table_segment_wrapper {
     display: inline-flex;
 }
 
@@ -58,13 +63,37 @@
     border-radius: 13px;
 }
 
+.seat_interaction_button_wrapper {
+    display: inline-flex;
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    left: 50%;
+    top: 50%;
+    line-height: 0;
+}
+
+.seat_interaction_button {
+    width: 14px;
+    height: 14px;
+    background-size: cover;
+    background-color: rgb(206, 226, 255);
+    border-color: black;
+    border-radius: 7px;
+    border-width: 1px;
+    z-index: 5;
+    -webkit-user-drag: none;
+    user-select: none;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+}
 
 #change_number_button {
     top: 30px;
     transform: translateX(-85px);
     background-image: url("./icons/change_number_black_circle.svg");
 }
-
 
 #rotate_button {
     top: -20px;
@@ -99,7 +128,6 @@
     -webkit-user-select: none;
     -ms-user-select: none;
 }
-
 
 .table_number_information {
     position: absolute;
