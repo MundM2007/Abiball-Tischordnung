@@ -7,10 +7,6 @@
     <title>Abiball-Tischordnung</title>
     <link rel="stylesheet" href="./styles.css">
     <link rel="icon" href="./favicon.ico" type="image/x-icon">
-
-    <link rel="preload" href="./icons/table_grey_end_left.svg"  as="image" type="image/svg+xml">
-    <link rel="preload" href="./icons/table_grey_middle.svg"    as="image" type="image/svg+xml">
-    <link rel="preload" href="./icons/table_grey_end_right.svg" as="image" type="image/svg+xml">
   </head>
   <body>
     <main>
@@ -18,11 +14,12 @@
         <input type="file" id="import_file" accept=".json"/>
         <button type="button" id="import_button">Import</button> 
         <button type="button" id="export_button">Export</button> 
-        <br>
         <p></p>
         <button type="button" id="add_table_button"></button>
+        <p></p>
         <div id="tables_container"></div>
     </main>
     <script src="index.js"></script>
+    <!--<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>-->
   </body>
 </html>

@@ -11,6 +11,7 @@
 #tables_container {
     width: 5000px;
     height: 3000px;
+    border: 1px solid black;
 }
 
 .table {
@@ -57,20 +58,61 @@
     border-radius: 13px;
 }
 
+
+#change_number_button {
+    top: 30px;
+    transform: translateX(-85px);
+    background-image: url("./icons/change_number_black_circle.svg");
+}
+
+
 #rotate_button {
-    top: -10px;
+    top: -20px;
     transform: translateX(-70px);
     background-image: url("./icons/rotate_black_circle.svg");
 }
 
 #move_button {
-    top: -30px;
+    top: -35px;
     transform: translateX(-50%);
     background-image: url("./icons/move_black_circle.svg");
 }
 
 #delete_button {
-    top: -10px;
+    top: -20px;
     transform: translateX(30px);
     background-image: url("./icons/cross_red_circle.svg");
+}
+
+.table_information {
+    position: absolute;
+    left: 50%;
+    top: 26px;
+    transform: translateX(22px);
+    font-size: 10px;
+    font-weight: bold;
+    color: green;
+    z-index: 10;
+    -webkit-user-drag: none;
+    user-select: none;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+}
+
+
+.table_number_information {
+    position: absolute;
+    left: 50%;
+    top: 52px;
+    transform: translateX(-50%);
+    font-size: 10px;
+    color: green;
+    font-weight: bold;
+    z-index: 10;
+    -webkit-user-drag: none;
+    user-select: none;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
 }
