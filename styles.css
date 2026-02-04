@@ -1,6 +1,10 @@
+#main {
+    width: 5312px;
+}
+
 #add_table_button {
     background-color: transparent;
-    background-image: url("./icons/add_green_circle.svg");
+    background-image: url("./icons/add_table.svg");
     background-size: cover;
     width: 40px;
     height: 40px;
@@ -64,7 +68,7 @@
 }
 
 .seat_interaction_button_wrapper {
-    display: inline-flex;
+    display: inline-block;
     position: absolute;
     width: 14px;
     height: 14px;
@@ -92,25 +96,25 @@
 #change_number_button {
     top: 30px;
     transform: translateX(-85px);
-    background-image: url("./icons/change_number_black_circle.svg");
+    background-image: url("./icons/change_table_number.svg");
 }
 
 #rotate_button {
     top: -20px;
     transform: translateX(-70px);
-    background-image: url("./icons/rotate_black_circle.svg");
+    background-image: url("./icons/rotate_table.svg");
 }
 
 #move_button {
     top: -35px;
     transform: translateX(-50%);
-    background-image: url("./icons/move_black_circle.svg");
+    background-image: url("./icons/move_table.svg");
 }
 
 #delete_button {
     top: -20px;
     transform: translateX(30px);
-    background-image: url("./icons/cross_red_circle.svg");
+    background-image: url("./icons/delete_table.svg");
 }
 
 .table_information {
@@ -143,4 +147,73 @@
     -moz-user-select: none;
     -webkit-user-select: none;
     -ms-user-select: none;
+}
+
+#sidebar {
+    display: flex;
+    flex-direction: column;
+    height: calc(100% - 20px);
+    width: 280px;
+    position: fixed;
+    z-index: 100;
+    top: 0;
+    right: 0;
+    background-color: white;
+    border-left: 3px solid black;
+    overflow-x: hidden;
+    padding-top: 20px;
+}
+
+#guest_list {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 10px;
+}
+
+#guests_list::-webkit-scrollbar {
+    width: 8px;
+}
+
+#guests_list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+#guests_list::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+#guests_list::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.guest {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    width: 250px;
+    border-radius: 5px;
+    background-color: rgb(206, 226, 255);
+    -webkit-user-drag: none;
+    user-select: none;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+    margin-bottom: 10px;
+}
+
+.guest_name {
+    margin: 5px;
+    font-weight: bold;
+}
+
+.guest_amount {
+    margin: 5px;
+}
+
+.guest_neighbors {
+    flex-basis: 100%;
+    margin: 5px;
+    margin-top: 0px;
 }

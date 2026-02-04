@@ -2,15 +2,19 @@ const tableSegmentHeight = 100;
 const tableMiddleSegmentWidth = tableSegmentHeight * 70 / 230;
 
 const addTableButton = document.getElementById('add_table_button');
+const importGuestsButton = document.getElementById('import_guests_button');
+const importGuestsFileInput = document.getElementById('import_guests_file');
 const exportButton = document.getElementById('export_button');
 const importButton = document.getElementById('import_button');
 const importFileInput = document.getElementById('import_file');
 let tableCount = 0;
 let tableNextId = 0;
-
+let openInteractionButton = "";
+let guests = [];
 
 addTableButton.addEventListener('click', createTable);
 exportButton.addEventListener('click', downloadLayoutFile);
+importGuestsButton.addEventListener('click', importGuests);
 importButton.addEventListener('click', importLayout);
 
 
@@ -101,7 +105,6 @@ function addTableInteractionButton(id){
     table.appendChild(button);
 
     // handle click
-    button.dataset.clicked = "false";
     button.addEventListener('click', handleTableInteraction);
 }
 
@@ -142,48 +145,59 @@ function addSeatInteractionButtons(id){
 
 
 function handleTableInteraction(_e){
-    toggleTableInteractionState(document.getElementById(this.id), true);
+    toggleTableInteractionState(document.getElementById(this.id), "table", true);
 }
 
 
-function toggleTableInteractionState(button, removeInformation = true){
-    let table = button.parentElement;
-    let id = table.id.split("-")[1];
-    if(button.dataset.clicked === "false"){
-        // enable action buttons -> set interaction button to clicked
-        button.dataset.clicked = "true";
-        button.style.backgroundImage = "url('./icons/cross_grey_circle.svg')";
+function toggleTableInteractionState(button, type, removeInformation = true){
+    // for tableInteractionButton -> id from table
+    // for seatInteractionButton -> id from table wrapper
+    // though these are equal, so no difference in usage
+    let tableId = button.parentElement.id.split("-")[1]; 
 
-        // disable other interaction button
-        if(document.getElementById("rotate_button") !== null){
-            toggleTableInteractionState(
-                document.getElementById("table_interaction_button-" + document.getElementById("rotate_button").parentElement.id.split("-")[1]), 
-                true
-            );
+    // if this button is already open, we need to close it
+    if(openInteractionButton == button.id){
+        // reset background image, reset open interaction button variable
+        openInteractionButton = "";
+        button.style.backgroundImage = "";
+
+        // hide extended table Number information, and show all buttons of this table again
+        if(type === "table"){
+            let tableNumberInformation = document.getElementById("table_number_information-" + tableId);
+            tableNumberInformation.innerText = tableNumberInformation.innerText.replace(" (Automatisch)", "").replace(" (Manuell)", "");
+
+            // remove action buttons that were open
+            removeActionButtonsForTable(removeInformation);
         }
 
-        // update table number information element to show manual/automatic
-        let tableNumberInformation = document.getElementById("table_number_information-" + id);
-        if(table.dataset.number==="null"){
+        // show all buttons of this table again
+        showThisTableInteractionButtons(tableId);
+        return;
+    }
+
+    // close currently open interaction, if there is one
+    if(openInteractionButton !== ""){
+        toggleTableInteractionState(document.getElementById(openInteractionButton), type, removeInformation);
+    }
+
+    // change current open interaction button, update background image to show an x
+    openInteractionButton = button.id;
+    button.style.backgroundImage = "url('./icons/close_interaction_menu.svg')";
+
+    // update table number information element to show manual/automatic
+    if(type === "table"){
+        let tableNumberInformation = document.getElementById("table_number_information-" + tableId);
+        if(button.parentElement.dataset.number==="null"){
             tableNumberInformation.innerText = tableNumberInformation.innerText + " (Automatisch)";
         }else{
             tableNumberInformation.innerText = tableNumberInformation.innerText + " (Manuell)";
         }
 
-        hideAllSeatInteractionButtons();
         createActionButtonsForTable(button);
-    }else{
-        // reset interaction button
-        button.dataset.clicked = "false";
-        button.style.backgroundImage = "";
-
-        // update table number information element to remove manual/automatic
-        let tableNumberInformation = document.getElementById("table_number_information-" + id);
-        tableNumberInformation.innerText = tableNumberInformation.innerText.replace(" (Automatisch)", "").replace(" (Manuell)", "");
-
-        showAllSeatInteractionButtons();
-        removeActionButtons(removeInformation);
     }
+    // hide all other buttons of this table, except for the interaction button
+    hideThisTableInteractionButtons(tableId);
+    button.style.display = "inline-block";
 }
 
 
@@ -225,18 +239,28 @@ function createActionButtonsForTable(button){
 }
 
 
-function hideAllActionButtons(){
-    let actionButtons = document.querySelectorAll(".hide_on_action");
-    for(let i = 0; i < actionButtons.length; i++){
-        actionButtons[i].style.display = "none";
+function hideThisTableInteractionButtons(tableId){
+    let table = document.getElementById("table-" + tableId);
+    let thisTableInteractionButtons = table.querySelectorAll(".hide_on_action");
+    for(let i = 0; i < thisTableInteractionButtons.length; i++){
+        thisTableInteractionButtons[i].style.display = "none";
     }
 }
 
 
-function hideAllSeatInteractionButtons(){
-    let seatInteractionButtons = document.querySelectorAll(".seat_interaction_button_wrapper");
-    for(let i = 0; i < seatInteractionButtons.length; i++){
-        seatInteractionButtons[i].style.display = "none";
+function showThisTableInteractionButtons(tableId){
+    let table = document.getElementById("table-" + tableId);
+    let thisTableInteractionButtons = table.querySelectorAll(".hide_on_action");
+    for(let i = 0; i < thisTableInteractionButtons.length; i++){
+        thisTableInteractionButtons[i].style.display = "inline-block";
+    }
+}
+
+
+function hideAllActionButtons(){
+    let actionButtons = document.querySelectorAll(".hide_on_action");
+    for(let i = 0; i < actionButtons.length; i++){
+        actionButtons[i].style.display = "none";
     }
 }
 
@@ -249,19 +273,11 @@ function showAllActionButtons(){
 }
 
 
-function showAllSeatInteractionButtons(){
-    let seatInteractionButtons = document.querySelectorAll(".seat_interaction_button_wrapper");
-    for(let i = 0; i < seatInteractionButtons.length; i++){
-        seatInteractionButtons[i].style.display = "inline-flex";
-    }
-}
-
-
 function changeNumberButtonClick(_e){
     // close open table information
     let table = document.getElementById(this.id).parentElement
     let tableInteractionButton = document.getElementById("table_interaction_button-" + table.id.split("-")[1]);
-    toggleTableInteractionState(tableInteractionButton, false);
+    toggleTableInteractionState(tableInteractionButton, "table", false);
     removeTableInformation();
 
     let number = window.prompt(
@@ -301,7 +317,7 @@ function rotateTableButtonClick(e){
 
     // toggle interaction button, hide all buttons
     let tableInteractionButton = document.getElementById("table_interaction_button-" + table.id.split("-")[1]);
-    toggleTableInteractionState(tableInteractionButton, false);
+    toggleTableInteractionState(tableInteractionButton, "table", false);
     hideAllActionButtons();
 
     function rotateTableHandler(e){
@@ -322,6 +338,11 @@ function rotateTableButtonClick(e){
     // finish rotation on click
     function finishRotation(e){
         e.stopImmediatePropagation();
+        Array.from(tableWrapper.children).slice(1).forEach(seat => {
+            let inverseRotation = "rotate(" + String(-Number(tableWrapper.style.transform.replace("rotate(", "").replace("deg)", ""))) + "deg)";
+            let originalInverseRotation = "rotate(" + String(-Number(originalRotation.replace("rotate(", "").replace("deg)", ""))) + "deg)";
+            seat.style.transform = seat.style.transform.replace(originalInverseRotation, "") + inverseRotation;
+        });
         document.removeEventListener('mousemove', rotateTableHandler);
         document.removeEventListener('keydown', cancelRotation);
         removeTableInformation();
@@ -355,7 +376,7 @@ function moveTableButtonClick(e){
 
     // toggle interaction button, hide all buttons
     let tableInteractionButton = document.getElementById("table_interaction_button-" + table.id.split("-")[1]);
-    toggleTableInteractionState(tableInteractionButton, false);
+    toggleTableInteractionState(tableInteractionButton, "table", false);
     hideAllActionButtons();
 
     function moveTableHandler(e){
@@ -410,7 +431,7 @@ function deleteTableButtonClick(_e){
 
 
 // remove action buttons
-function removeActionButtons(removeInformation = true){
+function removeActionButtonsForTable(removeInformation = true){
     if(document.getElementById("change_number_button")) document.getElementById("change_number_button").remove()
     if(document.getElementById("rotate_button")) document.getElementById("rotate_button").remove();
     if(document.getElementById("move_button")) document.getElementById("move_button").remove();
@@ -453,6 +474,80 @@ function updateTableNumbers(){
     }
 }
 
+
+function updateGuestList(){
+    let guestList = document.getElementById("guest_list");
+    for(let i = 0; i < guests.length; i++){
+        let guest = document.createElement("div");
+        guest.setAttribute("id", "guest-" + i);
+        guest.setAttribute("class", "guest");
+        guestList.appendChild(guest);
+
+        let guestName = document.createElement("p");
+        guestName.setAttribute("class", "guest_name");
+        guestName.innerText = guests[i].name;
+        guest.appendChild(guestName);
+
+        let guestAmount = document.createElement("p");
+        guestAmount.setAttribute("class", "guest_amount");
+        guestAmount.innerText = guests[i].amountOfGuests;
+        guest.appendChild(guestAmount);
+
+        let guestNeighbors = document.createElement("p");
+        guestNeighbors.setAttribute("class", "guest_neighbors");
+        let neighbor1 = guests[i].neighbor1 !== null ? guests[guests[i].neighbor1].name : ""
+        let neighbor2 = guests[i].neighbor2 !== null ? guests[guests[i].neighbor2].name : ""
+        guestNeighbors.innerText = 
+            `${neighbor1 == "" ? "Kein Wunsch" : neighbor1.substring(0, neighbor1.indexOf(",") + 3) + "."} und ` +
+            `${neighbor2 == "" ? "Kein Wunsch" : neighbor2.substring(0, neighbor2.indexOf(",") + 3) + "."}`;
+        guest.appendChild(guestNeighbors);
+    }
+
+}
+
+
+
+//
+// Import Guests from Excel
+//
+function importGuests(_e){
+    if(!window.confirm("Die aktuellen Gäste werden durch die neuen ersetzt. Bisherige Zuordnungen werden entfernt. Möchten Sie fortfahren?")) return;
+
+    let file = importGuestsFileInput.files[0]
+    if(!file){
+        alert("Bitte wählen Sie eine Datei zum Importieren aus.");
+        return;
+    }
+
+    let reader = new FileReader();
+    reader.onload = (e) => {
+        // open workbook
+        let workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+        // Access first sheet and data
+        let sheetName = workbook.SheetNames[0];
+        let worksheet = workbook.Sheets[sheetName];
+        let data = XLSX.utils.sheet_to_json(worksheet);
+        let guest_names = [];
+        for(let i = 0; i < data.length; i++){
+            guest_names.push(data[i]['Name']);
+        }
+        for(let i = 0; i < data.length; i++){
+            let neighbor1 = data[i]['WunschNachbar1'];
+            let neighbor2 = data[i]['WunschNachbar2'];
+            guests.push({
+                name: guest_names[i],
+                amountOfGuests: data[i]['Personenzahl'],
+                neighbor1: neighbor1 == "" ? null : guest_names.indexOf(neighbor1) == -1 ? null : guest_names.indexOf(neighbor1),
+                neighbor2: neighbor2 == "" ? null : guest_names.indexOf(neighbor2) == -1 ? null : guest_names.indexOf(neighbor2),
+            });
+        }
+        updateGuestList();
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+
+
 //
 // Exort / Import Layout
 //
@@ -474,34 +569,35 @@ function verifyJSON(json){
 
 async function importLayout(_e){
     // confirm replacement, and remove existing tables
-    if(window.confirm("Das aktuelle Layout wird durch das importierte Layout ersetzt. Möchten Sie fortfahren?")){
-        for(let i = 0; i < tableNextId; i++){
-            let element = document.getElementById("table-" + i);
-            if (element) element.remove();
-        }
-        
-        // read and verify layout data
-        let json = await readLayoutFile();
-        if(!json) return;
-        if(!verifyJSON(json)) return;
-
-        // recreate layout, set counters
-        tableCount = json.tableCount;
-        tableNextId = json.tableNextId;
-        for(let i = 0; i < json.tables.length; i++){
-            let table = json.tables[i];
-            addTable(
-                table.id, 
-                table.length, 
-                table.position?.left ?? "100px",
-                table.position?.top ?? "200px", 
-                table.rotation ?? "rotate(0deg)"
-            );
-            addTableInteractionButton(table.id);
-            addTableNumberInformation(table.id, table.number ?? "null")
-            updateTableNumbers();
-        }
+    if(!window.confirm("Das aktuelle Layout wird durch das importierte Layout ersetzt. Möchten Sie fortfahren?")) return;
+    for(let i = 0; i < tableNextId; i++){
+        let element = document.getElementById("table-" + i);
+        if (element) element.remove();
     }
+    
+    // read and verify layout data
+    let json = await readLayoutFile();
+    if(!json) return;
+    if(!verifyJSON(json)) return;
+
+    // recreate layout, set counters
+    tableCount = json.tableCount;
+    tableNextId = json.tableNextId;
+    for(let i = 0; i < json.tables.length; i++){
+        let table = json.tables[i];
+        addTable(
+            table.id, 
+            table.length, 
+            table.position?.left ?? "100px",
+            table.position?.top ?? "200px", 
+            table.rotation ?? "rotate(0deg)"
+        );
+        addTableInteractionButton(table.id);
+        addTableNumberInformation(table.id, table.number ?? "null")
+        updateTableNumbers();
+    }
+    guests = json.guests ?? [];
+    updateGuestList();
 } 
 
 
@@ -532,6 +628,7 @@ function exportLayout(){
     // export data as JSON file, first add general information
     let layoutData = {
         tables: [],
+        guests: guests,
         tableCount: tableCount,
         tableNextId: tableNextId
     };

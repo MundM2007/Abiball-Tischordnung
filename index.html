@@ -9,17 +9,24 @@
     <link rel="icon" href="./favicon.ico" type="image/x-icon">
   </head>
   <body>
-    <main>
-        <h1>Abiball-Tischordnung</h1>
-        <input type="file" id="import_file" accept=".json"/>
-        <button type="button" id="import_button">Import</button> 
-        <button type="button" id="export_button">Export</button> 
-        <p></p>
-        <button type="button" id="add_table_button"></button>
-        <p></p>
-        <div id="tables_container"></div>
-    </main>
+    <div id="sidebar">
+      <h2 style="margin: 0 10px;">Gäste</h2>
+      <div id="guest_list"></div>
+    </div>
+    <div id="main">
+      <h1>Abiball-Tischordnung</h1>
+      <input type="file" id="import_guests_file" accept=".xlsx"/>
+      <button type="button" id="import_guests_button">Import Guests</button> 
+      <br>
+      <input type="file" id="import_file" accept=".json"/>
+      <button type="button" id="import_button">Import Layout</button> 
+      <button type="button" id="export_button">Export Layout</button> 
+      <p></p>
+      <button type="button" id="add_table_button"></button>
+      <p></p>
+      <div id="tables_container"></div>
+    </div>
     <script src="index.js"></script>
-    <!--<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>-->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   </body>
 </html>
