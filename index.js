@@ -9,6 +9,7 @@ const exportButton = document.getElementById('export_button');
 const importButton = document.getElementById('import_button');
 const importFileInput = document.getElementById('import_file');
 const addGroupButton = document.getElementById('add_group_button');
+const addPersonButton = document.getElementById('add_person_button');
 // track amount of tables and next table id
 let tableCount = 0;
 let tableNextId = 0;
@@ -29,6 +30,8 @@ exportButton.addEventListener('click', downloadLayoutFile);
 importGuestsButton.addEventListener('click', importGuests);
 importButton.addEventListener('click', importLayout);
 addGroupButton.addEventListener('click', startGroupPlacement);
+addPersonButton.addEventListener('click', (e) => alert("Diese Funktion ist noch in Entwicklung."));
+
 
 function tableEndLeft(){
     // create left end of table image
@@ -319,8 +322,10 @@ function createActionButtonsForSeat(button){
 
     // positions and background images are handled via CSS
     // add event listeners for buttons
+    movePersonButton.addEventListener('click', (e) => alert("Diese Funktion ist noch in Entwicklung."));
     moveGroupButton.addEventListener('click', moveGroupButtonClick);
     deleteGroupButton.addEventListener('click', deleteGroupButtonClick);
+    deletePersonButton.addEventListener('click', (e) => alert("Diese Funktion ist noch in Entwicklung."));
 }
 
 
