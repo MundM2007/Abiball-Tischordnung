@@ -1,5 +1,5 @@
 #main {
-    width: 5312px;
+    width: 5292px;
 }
 
 #add_table_button {
@@ -78,12 +78,14 @@
 }
 
 .seat_interaction_button {
-    width: 14px;
-    height: 14px;
+    position: absolute;
+    left: 50%;
+    width: 30px;
+    height: 30px;
     background-size: cover;
-    background-color: rgb(206, 226, 255);
+    background-color: white;
     border-color: black;
-    border-radius: 7px;
+    border-radius: 15px;
     border-width: 1px;
     z-index: 5;
     -webkit-user-drag: none;
@@ -91,6 +93,16 @@
     -moz-user-select: none;
     -webkit-user-select: none;
     -ms-user-select: none;
+}
+
+
+.small_seat_interaction_button {
+    position: static;
+    left: 0;
+    background-color: rgb(238, 238, 238);
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
 }
 
 #change_number_button {
@@ -117,14 +129,46 @@
     background-image: url("./icons/delete_table.svg");
 }
 
+
+#move_person_button {
+    top: -10px;
+    transform: translateX(-55px);
+    background-image: url("./icons/move_person.svg");
+}
+
+#move_group_button {
+    top: -48px;
+    transform: translateX(-35px);
+    background-image: url("./icons/move_group.svg");
+}
+
+#delete_group_button {
+    top: -48px;
+    transform: translateX(5px);
+    background-image: url("./icons/delete_group.svg");
+}
+
+#delete_person_button {
+    top: -10px;
+    transform: translateX(25px);
+    background-image: url("./icons/delete_person.svg");
+}
+
+
 .table_information {
     position: absolute;
     left: 50%;
     top: 26px;
     transform: translateX(22px);
-    font-size: 10px;
-    font-weight: bold;
-    color: green;
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 12px;
+    color: black;
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 0 1px;
+    border-radius: 1px;
+    -webkit-font-smoothing: antialiased;
     z-index: 10;
     -webkit-user-drag: none;
     user-select: none;
@@ -136,12 +180,40 @@
 .table_number_information {
     position: absolute;
     left: 50%;
-    top: 52px;
+    top: 51px;
     transform: translateX(-50%);
-    font-size: 10px;
-    color: green;
-    font-weight: bold;
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 12px;
+    color: black;
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 0 1px;
+    border-radius: 1px;
+    -webkit-font-smoothing: antialiased;
     z-index: 10;
+    -webkit-user-drag: none;
+    user-select: none;
+    -moz-user-select: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+}
+
+.seat_number_information {
+    position: absolute;
+    left: 50%;
+    top: 3px;
+    transform: translateX(-50%);
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 12px;
+    color: black;
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 0 1px;
+    border-radius: 1px;
+    -webkit-font-smoothing: antialiased;
+    z-index: 5;
     -webkit-user-drag: none;
     user-select: none;
     -moz-user-select: none;
@@ -162,6 +234,32 @@
     border-left: 3px solid black;
     overflow-x: hidden;
     padding-top: 20px;
+}
+
+#guests_button_container {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+}
+
+#add_person_button {
+    background-color: transparent;
+    background-image: url("./icons/add_person.svg");
+    background-size: cover;
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    border-width: 2px;
+}
+
+#add_group_button {
+    background-color: transparent;
+    background-image: url("./icons/add_group.svg");
+    background-size: cover;
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    border-width: 2px;
 }
 
 #guest_list {
@@ -194,13 +292,14 @@
     justify-content: space-between;
     width: 250px;
     border-radius: 5px;
-    background-color: rgb(206, 226, 255);
+    background-color: rgb(238, 238, 238);
     -webkit-user-drag: none;
     user-select: none;
     -moz-user-select: none;
     -webkit-user-select: none;
     -ms-user-select: none;
     margin-bottom: 10px;
+    cursor: pointer;
 }
 
 .guest_name {
@@ -213,6 +312,12 @@
 }
 
 .guest_neighbors {
+    flex-basis: 100%;
+    margin: 5px;
+    margin-top: 0px;
+}
+
+.guest_seats {
     flex-basis: 100%;
     margin: 5px;
     margin-top: 0px;

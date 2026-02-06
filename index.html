@@ -11,16 +11,20 @@
   <body>
     <div id="sidebar">
       <h2 style="margin: 0 10px;">Gäste</h2>
+      <div id="guests_button_container">
+        <button type="button" id="add_group_button"></button>
+        <button type="button" id="add_person_button"></button>
+      </div>
       <div id="guest_list"></div>
     </div>
     <div id="main">
       <h1>Abiball-Tischordnung</h1>
       <input type="file" id="import_guests_file" accept=".xlsx"/>
-      <button type="button" id="import_guests_button">Import Guests</button> 
+      <button type="button" id="import_guests_button">Gäste importieren</button> 
       <br>
       <input type="file" id="import_file" accept=".json"/>
-      <button type="button" id="import_button">Import Layout</button> 
-      <button type="button" id="export_button">Export Layout</button> 
+      <button type="button" id="import_button">Layout importieren</button> 
+      <button type="button" id="export_button">Layout exportieren</button> 
       <p></p>
       <button type="button" id="add_table_button"></button>
       <p></p>
