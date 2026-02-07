@@ -262,6 +262,14 @@
     border-width: 2px;
 }
 
+#search_input {
+    margin: 0 10px 10px 10px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+
 #guest_list {
     flex: 1;
     overflow-y: auto;
@@ -300,6 +308,10 @@
     -ms-user-select: none;
     margin-bottom: 10px;
     cursor: pointer;
+}
+
+.guest:hover {
+    background-color: rgb(255, 215, 215) !important;
 }
 
 .guest_name {

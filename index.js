@@ -10,6 +10,7 @@ const importButton = document.getElementById('import_button');
 const importFileInput = document.getElementById('import_file');
 const addGroupButton = document.getElementById('add_group_button');
 const addPersonButton = document.getElementById('add_person_button');
+const searchInput = document.getElementById('search_input');
 // track amount of tables and next table id
 let tableCount = 0;
 let tableNextId = 0;
@@ -30,7 +31,8 @@ exportButton.addEventListener('click', downloadLayoutFile);
 importGuestsButton.addEventListener('click', importGuests);
 importButton.addEventListener('click', importLayout);
 addGroupButton.addEventListener('click', startGroupPlacement);
-addPersonButton.addEventListener('click', (e) => alert("Diese Funktion ist noch in Entwicklung."));
+addPersonButton.addEventListener('click', startPersonPlacement);
+searchInput.addEventListener("input", searchGuestList);
 
 
 function tableEndLeft(){
@@ -184,7 +186,8 @@ function handleTableInteraction(_e){
 
 function handleSeatInteraction(_e){
     if(guestMode === "default") toggleTableInteractionState(document.getElementById(this.id), "seat");
-    else if(guestMode === "select_position_group") finishPlacement(document.getElementById(this.id));
+    else if(guestMode === "select_position_group") finishGroupPlacement(document.getElementById(this.id));
+    else if(guestMode === "select_position_person") finishPersonPlacement(document.getElementById(this.id));
     else alert("Bitte wählen Sie zuerst eine Gruppe aus der Gästeliste aus, bevor Sie einen Sitzplatz zuweisen können.");
 }
 
@@ -322,10 +325,10 @@ function createActionButtonsForSeat(button){
 
     // positions and background images are handled via CSS
     // add event listeners for buttons
-    movePersonButton.addEventListener('click', (e) => alert("Diese Funktion ist noch in Entwicklung."));
+    movePersonButton.addEventListener('click', movePersonButtonClick);
     moveGroupButton.addEventListener('click', moveGroupButtonClick);
     deleteGroupButton.addEventListener('click', deleteGroupButtonClick);
-    deletePersonButton.addEventListener('click', (e) => alert("Diese Funktion ist noch in Entwicklung."));
+    deletePersonButton.addEventListener('click', deletePersonButtonClick);
 }
 
 
@@ -546,7 +549,6 @@ function moveGroupButtonClick(_e){
     originalSeatAllocation = guests[selectedGuestNumber].seats.slice();
     // calculate unassigned guests from group count, so if only x are assigned, only x can be flood filled in the new position
     unassignedGuestsFromGroupCount = guests[selectedGuestNumber].amountOfGuests - guests[selectedGuestNumber].seats.length;
-    // TEST !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     // set guest mode already, so we don't have to update seat colors twice (deleteGroupFromButton calls it aswell)
     guestMode = "select_position_group";
@@ -576,6 +578,51 @@ function cancelMoveGroup(e){
         updateGuestListContent();
         showTableInteractionButtons();
         document.removeEventListener('keydown', cancelMoveGroup);
+
+        originalSeatAllocation = [];
+        unassignedGuestsFromGroupCount = 0;
+    }
+}
+
+
+function movePersonButtonClick(_e){
+    // get relevant data, initialize selectedGuestNumber
+    let seatButton = document.getElementById(this.id).parentElement.firstChild
+    let guestNumber = seatButton.dataset.guest;
+    if(guestNumber === "null") return;
+
+    if(!deletePersonFromButton(seatButton.id)) return;
+    originalSeatAllocation = [seatButton.id];
+
+    // set guest mode, update seat colors, guest list
+    selectedGuestNumber = guestNumber;
+    guestMode = "select_position_person";
+    updateTableSeatColors(null, true);
+    updateGuestListContent();
+
+    // emulate person placement button, person select
+    hideTableInteractionButtons()
+    document.getElementById("guest-" + selectedGuestNumber).style.backgroundColor = "rgb(255, 160, 160)"
+
+    // cancel movement on escape key
+    document.addEventListener('keydown', cancelMovePerson);
+}
+
+
+function cancelMovePerson(e){
+    if(e.key === 'Escape'){
+        // reassign original seat
+        document.getElementById(originalSeatAllocation[0]).dataset.guest = selectedGuestNumber;
+        guests[selectedGuestNumber].seats.push(originalSeatAllocation[0]);
+
+        guestMode = "default";
+        selectedGuestNumber = null;
+        updateTableSeatColors(null, null);
+        updateGuestListContent();
+        showTableInteractionButtons();
+        document.removeEventListener('keydown', cancelMovePerson);
+
+        originalSeatAllocation = [];
     }
 }
 
@@ -583,7 +630,7 @@ function cancelMoveGroup(e){
 function deleteGroupButtonClick(_e){
     let seatButton = document.getElementById(this.id).parentElement.firstChild
     if(seatButton.dataset.guest === "null") return;
-    if(window.confirm("Sind Sie sicher, dass Sie diese Sitzplatzzuweisung löschen möchten?")){
+    if(window.confirm("Sind Sie sicher, dass Sie diese Gäste von der Sitzplatzzuweisung löschen möchten?")){
         deleteGroupFromButton(seatButton.id)
     }
 }
@@ -607,6 +654,68 @@ function deleteGroupFromButton(id){
     updateTableSeatColors(seatButtonWrapper.parentElement.parentElement.id, true);
     updateGuestListContent();
     toggleTableInteractionState(seatButton, "seat");
+}
+
+
+function deletePersonButtonClick(_e){
+    let seatButton = document.getElementById(this.id).parentElement.firstChild
+    if(seatButton.dataset.guest === "null") return;
+    if(window.confirm("Sind Sie sicher, dass Sie diesen Gast von der Sitzplatzzuweisung löschen möchten?")){
+        deletePersonFromButton(seatButton.id)
+    }
+}
+
+
+function deletePersonFromButton(id){
+    let seatButton = document.getElementById(id);
+    seatButton.dataset.floodFilled = "true"; // set to avoid the flood fill from passing through this seat
+    let guestNumber = Number(seatButton.dataset.guest);
+    let seats = guests[guestNumber].seats;
+    let seatIndex = seats.indexOf(seatButton.id);
+    let seatPrefix = seatButton.id.split(".")[0];
+
+    // start flood fill from any other seat in the group
+    let stack = [seatIndex == 0 ? guests[guestNumber].seats[1] : guests[guestNumber].seats[0]];
+    let amount = 0;
+    // flood fill all seats connected to any other seat of the group
+    while (stack.length > 0){
+        // get current seat, continue if it is already flood filled, isn't from the same group or does not exist (can happen with neighboring seats)
+        let currentSeat = document.getElementById(stack.shift());
+        if(currentSeat === null || currentSeat.dataset.floodFilled === "true" || currentSeat.dataset.guest !== seatButton.dataset.guest) continue;
+        // set flood filled, increase amount
+        currentSeat.dataset.floodFilled = "true";
+        amount++;
+        let seatIdNumber = Number(currentSeat.id.split(".")[1]);
+        // add neighboring seats to stack
+        stack.push(
+            seatPrefix + "." + (seatIdNumber + (seatIdNumber % 2 === 0 ? 1 : -1)),
+            seatPrefix + "." + (seatIdNumber - 2),
+            seatPrefix + "." + (seatIdNumber + 2)
+        );
+    }
+
+    // in this case the seat can be deleted without splitting the group
+    let success = false;
+    if(amount == guests[guestNumber].seats.length - 1){
+        // remove seat from guest
+        seatButton.dataset.guest = null;
+        seatButton.dataset.floodFilled = "false";
+        seats.splice(seatIndex, 1);
+
+        // update colors and guest list
+        updateTableSeatColors(seatButton.parentElement.parentElement.parentElement.id, null);
+        updateGuestListContent();
+        success = true;
+    }else{
+        alert("Dieser Gast ist ein Verbindungsglied zwischen mehreren Gästen der Gruppe. Das Löschen dieses Gastes würde die Gruppe teilen. Bitte wählen Sie einen anderen Gast.");
+    }
+
+    // reset flood filled for seats
+    for(let i = 0; i < seats.length; i++){
+        document.getElementById(seats[i]).dataset.floodFilled = "false";
+    }
+    toggleTableInteractionState(seatButton, "seat");
+    return success;
 }
 
 
@@ -684,6 +793,8 @@ function updateGuestList(){
         guest.setAttribute("class", "guest");
         guestList.appendChild(guest);
         guest.addEventListener('click', selectPersonFromGuestList);
+        guest.addEventListener('mouseover', toggleHighlightGuestList);
+        guest.addEventListener('mouseout', toggleHighlightGuestList);
 
         // add <p> elements for name, amount of guests, neighbors and assigned seats in guest wrapper
         let guestName = document.createElement("p");
@@ -754,6 +865,19 @@ function updateGuestListContent(){
     }
 }
 
+
+function searchGuestList(_e){
+    let searchTerm = this.value.toLowerCase();
+    for(let i = 0; i < guests.length; i++){
+        if(guests[i].name.toLowerCase().includes(searchTerm)){
+            document.getElementById("guest-" + i).style.display = "flex";
+        }else{
+            document.getElementById("guest-" + i).style.display = "none";
+        }
+    }
+}
+
+
 //
 // Seat Assignment logic
 //
@@ -761,7 +885,18 @@ function startGroupPlacement(_e){
     if(guestMode === "default"){
         guestMode = "select_group";
         hideTableInteractionButtons();
-        document.addEventListener('keydown', cancelGroupPlacement);
+        document.addEventListener('keydown', cancelPlacement);
+    }else{
+        alert("Es ist bereits ein Platzierungsmodus aktiv. Bitte schließen Sie diesen zuerst ab oder brechen Sie ihn mit Escape ab.");
+    }
+}
+
+
+function startPersonPlacement(_e){
+    if(guestMode === "default"){
+        guestMode = "select_person";
+        hideTableInteractionButtons();
+        document.addEventListener('keydown', cancelPlacement);
     }else{
         alert("Es ist bereits ein Platzierungsmodus aktiv. Bitte schließen Sie diesen zuerst ab oder brechen Sie ihn mit Escape ab.");
     }
@@ -782,8 +917,26 @@ function selectPersonFromGuestList(_e){
         selectedGuestNumber = this.id.split("-")[1];
         document.getElementById(this.id).style.backgroundColor = "rgb(255, 160, 160)";
         updateTableSeatColors(null, true);
+    }else if(guestMode === "select_person"){
+        if(guests[this.id.split("-")[1]].seats.length === 0){
+            alert("Dieser Gruppe wurde noch keinem Sitzplatz zugewiesen. Nutzen Sie dafür die Gruppenplatzierung. Bitt wählen Sie eine andere Person oder brechen Sie den Vorgang mit Escape ab.");
+            return;
+        }
+        if(guests[this.id.split("-")[1]].amountOfGuests - guests[this.id.split("-")[1]].seats.length === 0){
+            alert("Dieser Gruppe wurden bereits alle Personen einem Sitzplatz zugewiesen. Bitte wählen Sie eine andere Person oder brechen Sie den Vorgang mit Escape ab.");
+            return;
+        }
+        guestMode = "select_position_person";
+        selectedGuestNumber = this.id.split("-")[1];
+        document.getElementById(this.id).style.backgroundColor = "rgb(255, 160, 160)";
+        updateTableSeatColors(null, true);
     }else if(guestMode === "default"){
-        alert("Es ist kein Platzierungsmodus aktiv. Bitte starten Sie zuerst einen mit den oberen Schaltflächen.");
+        // scroll to seat of this guest, if there is one
+        let guestNumber = this.id.split("-")[1];
+        let guestSeats = guests[guestNumber].seats;
+        if(guestSeats.length !== 0){
+            document.getElementById(guestSeats[0]).scrollIntoView({behavior: "smooth", block: "center", inline: "center"});
+        }
     }else{
         alert("Es ist bereits ein Platzierungsmodus aktiv. Sie können währenddessen keine neue Person auswählen. Bitte schließen Sie diesen zuerst ab oder brechen Sie ihn mit Escape ab.");
     }
@@ -791,10 +944,10 @@ function selectPersonFromGuestList(_e){
 
 
 function colorizeSeats(seats) {
-    // define the 3 colors to use, because the table is only 2xn and every group it connected, only 3 colors are needed, 
-    // to ensure that no neighboring seats have the same color
-    // because the seats are already ordered to go from left to right, it's enough to color them in order, 
-    // picking the first color that is not used by a neighbor
+    // define the 3 colors to use, because the table is only 2xn and every group is connected, only 3 colors are needed
+    // to ensure that no neighboring seats have the same color.
+    // Because the seats are already ordered to go from left to right, it's enough to color them in order, 
+    // picking the first color that is not used by a neighbor.
     let colors = [
         "rgb(200, 255, 203)",
         "rgb(180, 255, 255)",
@@ -873,7 +1026,7 @@ function updateTableSeatColors(tableId = null, doFullUpdate = false){
         let table = document.getElementById(tableId);
         seats = Array.from(table.firstChild.children).slice(1).map(seat => seat.firstChild);
     }
-    if(guestMode === "default" || guestMode === "select_group"){
+    if(guestMode === "default" || guestMode === "select_group" || guestMode === "select_person"){
         let occupiedSeats = []
         for(let i = 0; i < seats.length; i++){
             let seat = seats[i];
@@ -881,8 +1034,33 @@ function updateTableSeatColors(tableId = null, doFullUpdate = false){
             else occupiedSeats.push(seat);
         }
         if(occupiedSeats.length > 0) colorizeSeats(occupiedSeats);
-    }
-    if(guestMode === "select_position_group"){
+    }else if(guestMode === "select_position_person"){
+        // loop over all seats, set all of them to yellow (= not possible position for selected guest)
+        // -> later possible positions are made green
+        for(let i = 0; i < seats.length; i++){
+            seats[i].style.backgroundColor = "rgb(255, 246, 168)";
+        }
+
+        // loop over all seats of the currently selected guest to highlight the neighboring, empty seats as possible positions for the selected guest
+        for(let j = 0; j < guests[selectedGuestNumber].seats.length; j++){
+            let [seatPrefix, seatIdNumber] = guests[selectedGuestNumber].seats[j].split(".");
+            seatIdNumber = Number(seatIdNumber);
+            let neighborSeatIds = [
+                seatPrefix + "." + (seatIdNumber + (seatIdNumber % 2 === 0 ? 1 : -1)),
+                seatPrefix + "." + (seatIdNumber - 2),
+                seatPrefix + "." + (seatIdNumber + 2)
+            ]
+
+            // loop over the neighboring seats, if one is empty, highlight it as possible position for the selected guest
+            for(let k = 0; k < neighborSeatIds.length; k++){
+                let neighborSeat = document.getElementById(neighborSeatIds[k]);
+                if(neighborSeat === null) continue;
+                if(neighborSeat.dataset.guest === "null"){
+                    neighborSeat.style.backgroundColor = "rgb(200, 255, 203)";
+                }
+            }
+        }
+    }else if(guestMode === "select_position_group"){
         for(let i = 0; i < seats.length; i++){
             let seat = seats[i];
             // reset flood filled seats
@@ -905,7 +1083,6 @@ function updateTableSeatColors(tableId = null, doFullUpdate = false){
         if(neighbor1 !== null) favorableNeighborGuestIdNumbers.push(Number(neighbor1));
         if(neighbor2 !== null) favorableNeighborGuestIdNumbers.push(Number(neighbor2));
 
-        console.log(favorableNeighborGuestIdNumbers)
         for(let i = 0; i < guests.length; i++){
             // only == because selectedGuestNumber is a string, because it comes from dataset
             if(guests[i].neighbor1 == selectedGuestNumber || guests[i].neighbor2 == selectedGuestNumber){
@@ -941,7 +1118,28 @@ function updateTableSeatColors(tableId = null, doFullUpdate = false){
 
 
 function toggleHighlight(e){
-    if(guestMode === "select_position_group"){
+    if(guestMode === "default" || guestMode === "select_group" || guestMode === "select_person"){
+        if(e.type === "mouseover"){
+            let seat = document.getElementById(this.id);
+            if(seat.dataset.guest === "null") return;
+            // color all seat of the same guest
+            let guestNumber = Number(seat.dataset.guest);
+            let guestSeats = guests[seat.dataset.guest].seats;
+            for(let i = 0; i < guestSeats.length; i++){
+                document.getElementById(guestSeats[i]).style.backgroundColor = "rgb(255, 215, 215)";
+            }
+
+            // highight guest element in guest list, jump to it
+            let guestElement = document.getElementById("guest-" + guestNumber);
+            guestElement.style.backgroundColor = "rgb(255, 215, 215)";
+            guestElement.scrollIntoView({behavior: "smooth", block: "start"});
+        }else{
+            // reset colors of all seats of the same guest, and color of guest element in guest list
+            if(document.getElementById(this.id).dataset.guest === "null") return;
+            updateTableSeatColors(document.getElementById(this.id).parentElement.parentElement.parentElement.id, null);
+            updateGuestListContent();
+        }
+    }else if(guestMode === "select_position_group"){
         if(e.type === "mouseover"){
             // set values, return if seat already occupied
             let seat = document.getElementById(this.id);
@@ -968,6 +1166,7 @@ function toggleHighlight(e){
                 );
             }
         }else {
+            if(document.getElementById(this.id).dataset.guest !== "null") return;
             // seat button -> seat wrapper -> table wrapper -> table -> table id
             updateTableSeatColors(document.getElementById(this.id).parentElement.parentElement.parentElement.id, false);
         }
@@ -975,36 +1174,76 @@ function toggleHighlight(e){
 }
 
 
-function finishPlacement(seat){
-    if(guestMode === "select_position_group"){
-        // seat button -> seat wrapper -> table wrapper -> children -> children (without table segment wrapper) -> seat buttons
-        let seats = Array.from(seat.parentElement.parentElement.children).slice(1).map(seat => seat.firstChild);
-        for(let i = 0; i < seats.length; i++){
-            if(seats[i].dataset.floodFilled === "true"){
-                seats[i].dataset.guest = selectedGuestNumber;
-                seats[i].dataset.floodFilled = "false";
-                guests[selectedGuestNumber].seats.push(seats[i].id);
+function toggleHighlightGuestList(e){
+    if(guestMode === "default" || guestMode === "select_group" || guestMode === "select_person"){
+        let guestNumber = this.id.split("-")[1];
+        let guestSeats = guests[guestNumber].seats;
+        if(e.type === "mouseover"){
+            for(let i = 0; i < guestSeats.length; i++){
+                document.getElementById(guestSeats[i]).style.backgroundColor = "rgb(255, 215, 215)";
             }
+        }else{
+            if(guestSeats.length === 0) return;
+            updateTableSeatColors("table-" + guestSeats[0].split("-")[1].split(".")[0], null);
         }
-        guestMode = "default";
-        selectedGuestNumber = null;
-        updateTableSeatColors(null, null);
-        updateGuestListContent();
-        showTableInteractionButtons();
-
-        // reset variables from movement
-        originalSeatAllocation = [];
-        unassignedGuestsFromGroupCount = 0;
-        // remove move group cancel event listener!
-        document.removeEventListener('keydown', cancelMoveGroup);
     }
-    document.removeEventListener('keydown', cancelGroupPlacement);
 }
 
 
-function cancelGroupPlacement(e){
+function finishGroupPlacement(seat){
+    // seat button -> seat wrapper -> table wrapper -> children -> children (without table segment wrapper) -> seat buttons
+    let seats = Array.from(seat.parentElement.parentElement.children).slice(1).map(seat => seat.firstChild);
+    for(let i = 0; i < seats.length; i++){
+        if(seats[i].dataset.floodFilled === "true"){
+            seats[i].dataset.guest = selectedGuestNumber;
+            seats[i].dataset.floodFilled = "false";
+            guests[selectedGuestNumber].seats.push(seats[i].id);
+        }
+    }
+    guestMode = "default";
+    selectedGuestNumber = null;
+    updateTableSeatColors(null, null);
+    updateGuestListContent();
+    showTableInteractionButtons();
+
+    // reset variables from movement
+    originalSeatAllocation = [];
+    unassignedGuestsFromGroupCount = 0;
+    // remove move group cancel event listener!
+    document.removeEventListener('keydown', cancelMoveGroup);
+    // and group placement event listener
+    document.removeEventListener('keydown', cancelPlacement); 
+}
+
+
+function finishPersonPlacement(seat){
+    if(seat.style.backgroundColor !== "rgb(200, 255, 203)"){
+        alert("Dieser Sitzplatz ist kein Nachbar eines bereits zugewiesenen Sitzplatzes der Gruppe. Bitte wählen Sie einen anderen Sitzplatz (grün) oder brechen Sie den Vorgang mit Escape ab.");
+        return;
+    }
+
+    // set guest
+    seat.dataset.guest = selectedGuestNumber;
+    guests[selectedGuestNumber].seats.push(seat.id);
+
+    guestMode = "default";
+    selectedGuestNumber = null;
+    updateTableSeatColors(null, null);
+    updateGuestListContent();
+    showTableInteractionButtons();
+
+    // reset variables from movement
+    originalSeatAllocation = [];
+    // remove move person cancel event listener!
+    document.removeEventListener('keydown', cancelMovePerson);
+    // and person placement event listener
+    document.removeEventListener('keydown', cancelPlacement);
+}
+
+
+function cancelPlacement(e){
     if(e.key === 'Escape'){
-        if(guestMode === "select_position_group"){
+        if(guestMode === "select_position_group" || guestMode === "select_position_person"){
             guestMode = "default";
             selectedGuestNumber = null;
             updateTableSeatColors(null, null);
@@ -1013,9 +1252,10 @@ function cancelGroupPlacement(e){
             guestMode = "default";
         }
         showTableInteractionButtons();
-        document.removeEventListener('keydown', cancelGroupPlacement);
+        document.removeEventListener('keydown', cancelPlacement);
     }
 }
+
 
 //
 // Import Guests from Excel
