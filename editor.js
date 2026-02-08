@@ -3,6 +3,7 @@ const tableMiddleSegmentWidth = tableSegmentHeight * 70 / 230;
 
 // always open elements
 const addTableButton = document.getElementById('add_table_button');
+const exportSeatingButton = document.getElementById('export_seating_button');
 const importGuestsButton = document.getElementById('import_guests_button');
 const importGuestsFileInput = document.getElementById('import_guests_file');
 const exportButton = document.getElementById('export_button');
@@ -27,6 +28,7 @@ let unassignedGuestsFromGroupCount = 0;
 
 // add event listeners
 addTableButton.addEventListener('click', createTable);
+exportSeatingButton.addEventListener('click', downloadSeatingFile);
 exportButton.addEventListener('click', downloadLayoutFile);
 importGuestsButton.addEventListener('click', importGuests);
 importButton.addEventListener('click', importLayout);
@@ -532,9 +534,22 @@ function moveTable(e, table){
 function deleteTableButtonClick(_e){
     if(window.confirm("Sind Sie sicher, dass Sie diesen Tisch löschen möchten?")){
         let table = document.getElementById(this.id).parentElement;
+        // reset current open interaction button
+        toggleTableInteractionState(document.getElementById("table_interaction_button-" + table.id.split("-")[1]), "table", true);
+
+        // reset/clear seat allocations of guests sitting at this table
+        let seatButtons = table.querySelectorAll(".seat_interaction_button");
+        for(let i = 0; i < seatButtons.length; i++){
+            let seatButton = seatButtons[i];
+            if(seatButton.dataset.guest === "null") continue;
+            let guestNumber = Number(seatButton.dataset.guest);
+            guests[guestNumber].seats = [];
+        }
+
         table.remove();
         tableCount--;
         updateTableNumbers();
+        updateGuestListContent();
     }
 }
 
@@ -1023,8 +1038,7 @@ function updateTableSeatColors(tableId = null, doFullUpdate = false){
     if(tableId === null){
         seats = document.querySelectorAll(".small_seat_interaction_button");
     }else{
-        let table = document.getElementById(tableId);
-        seats = Array.from(table.firstChild.children).slice(1).map(seat => seat.firstChild);
+        seats = document.getElementById(tableId).querySelectorAll(".small_seat_interaction_button");
     }
     if(guestMode === "default" || guestMode === "select_group" || guestMode === "select_person"){
         let occupiedSeats = []
@@ -1146,10 +1160,39 @@ function toggleHighlight(e){
             if(seat.dataset.guest !== "null") return;
             let seatPrefix = this.id.split(".")[0];
 
+            // manual overwrite if guests count is a multiple of 4, so that all guests are sitting opposite of another
+            let guestCount = guests[selectedGuestNumber].amountOfGuests - unassignedGuestsFromGroupCount;
+            if(guestCount / 4 == Math.floor(guestCount / 4)){
+                let succesful = true;
+                // check if all seats, starting from a seat with an even number, so that a rectangle gets formed
+                let seatNumber = Number(this.id.split(".")[1]);
+                // offset it a little (half of the guest count), add one if the seatNumber is uneven, to make it a rectangle
+                let offsetSeatNumber = seatNumber - Math.floor(guestCount / 4) * 2 + (seatNumber % 2 === 0 ? 0 : 1);
+                for (let seatNumber = offsetSeatNumber; seatNumber < offsetSeatNumber + guestCount; seatNumber++) {
+                    let seat = document.getElementById(seatPrefix + "." + seatNumber);
+                    if (seat === null || seat.dataset.guest !== "null" ) {
+                        succesful = false;
+                        break;
+                    }
+                }
+
+                if(succesful){
+                    console.log("test")
+                    // if so, color them and set flood filled, so they work on seat click
+                    for (let seatNumber = offsetSeatNumber; seatNumber < offsetSeatNumber + guestCount; seatNumber++) {
+                        document.getElementById(seatPrefix + "." + seatNumber).dataset.floodFilled = "true";
+                        document.getElementById(seatPrefix + "." + seatNumber).style.backgroundColor = "rgb(255, 160, 160)";
+                    }
+                    // return, so flood fill doesn't take place -> not needed
+                    return;
+                }
+            }
+
+
             let stack = [this.id];
             let amount = 0;
             // flood fill all seats up to amount of guests, and highlight them
-            while (stack.length > 0 && amount < (guests[selectedGuestNumber].amountOfGuests - unassignedGuestsFromGroupCount)){
+            while (stack.length > 0 && amount < guestCount){
                 // get current seat, continue if it is already flood filled or does not exist (can happen with neighboring seats)
                 let currentSeat = document.getElementById(stack.shift());
                 if(currentSeat === null || currentSeat.dataset.floodFilled === "true" || currentSeat.dataset.guest !== "null") continue;
@@ -1425,9 +1468,20 @@ function exportLayout(){
 }
 
 
-function downloadLayoutFile(_e) {
-    let file = new File([JSON.stringify(exportLayout())], "Tisch-Layout.json")
+function exportSeating(){
+    let seatingData = [];
+    for(let i = 0; i < guests.length; i++){
+        seatingData.push({
+            Name: guests[i].name,
+            Tisch: guests[i].seats.length > 0 ? "Tisch " + document.getElementById("table-" + guests[i].seats[0].split("-")[1].split(".")[0]).dataset.shownNumber : "Kein Tisch",
+            Sitzplätze: guests[i].seats.length > 0 ? guests[i].seats.map(seat => "S" + (Number(seat.split(".")[1]) + 1)).join(", ") : "Keine Sitzplätze"
+        });
+    }
+    return seatingData;
+}
 
+
+function downloadFile(file){
     // Create a link add url to file
     const link = document.createElement('a');
     link.style.display = 'none';
@@ -1443,6 +1497,20 @@ function downloadLayoutFile(_e) {
         URL.revokeObjectURL(link.href);
         link.parentNode.removeChild(link);
     }, 0);
+}
+
+
+function downloadLayoutFile(_e){
+    downloadFile(new File([JSON.stringify(exportLayout())], "Tisch-Layout.json"));
+}
+
+
+function downloadSeatingFile(_e){
+    // convert seating data to worksheet and workbook, then export as xlsx file
+    let worksheet = XLSX.utils.json_to_sheet(exportSeating());
+    let workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Sitzplatzzuweisung");
+    XLSX.writeFile(workbook, "Sitzplatzzuweisung.xlsx");
 }
 
 
