@@ -1,5 +1,5 @@
 const tableSegmentHeight = 100;
-const tableMiddleSegmentWidth = tableSegmentHeight * 70 / 230;
+const tableMiddleSegmentWidth = tableSegmentHeight * 70 / 230 // aspect ratio of table middle segment image;
 
 // always open elements
 const addTableButton = document.getElementById('add_table_button');
@@ -98,17 +98,20 @@ function addTable(id, length, posLeft = "100px", posTop = "200px", rotation = "r
     tableWrapper.setAttribute("class", "table_wrapper");
     table.appendChild(tableWrapper);
 
+    // add table segment wrapper, to hold all images, needed because seat button wrappers will also be children of table wrapper
     let tableSegmentWrapper = document.createElement("div");
     tableSegmentWrapper.setAttribute("id", "table_segment_wrapper-" + id)
     tableSegmentWrapper.setAttribute("class", "table_segment_wrapper");
     tableWrapper.appendChild(tableSegmentWrapper)
 
+    // add table segments
     tableSegmentWrapper.appendChild(tableEndLeft());
     for(let i = 0; i < length - 2; i++) {
         tableSegmentWrapper.appendChild(tableMiddle());
     }
     tableSegmentWrapper.appendChild(tableEndRight());
 
+    // set position and rotation
     table.style.left = posLeft;
     table.style.top = posTop;
     tableWrapper.style.transform = rotation;
@@ -391,17 +394,20 @@ function changeNumberButtonClick(_e){
     toggleTableInteractionState(tableInteractionButton, "table", false);
     removeTableInformation();
 
+    // prompt for new number
     let number = window.prompt(
         "Die Bestimmung der Tischnummer kann in 2 wegen erfolgen: Automatisch und Manuell.\n" + 
         " - Automatisch: Nummerierung erfolgt anhand der Reihenfolge, in der die Tische hinzugefügt werden. Beginnend bei 1. Diesen Modus kann durch das Klicken auf 'Abbrechen' ausgewählt werden.\n" + 
         " - Manuell: Nummerierung erfolgt anhand der eingegebenen Nummer. Tisch wird bei der automatische Nummerierung ignoriert.",
         "1"
     );
+    // if prompt cancelled -> set to automatic
     if (number===null){
         table.dataset.number = null;
         updateTableNumbers();
         return;
     }
+    // validate input, if invalid -> alert and set to automatic
     number = Number(number);
     if (!Number.isInteger(number)) {
         alert("Bitte geben Sie eine gültige Zahl ein.");
@@ -410,6 +416,7 @@ function changeNumberButtonClick(_e){
         return;
     }
 
+    // set new number
     table.dataset.number = number;
     updateTableNumbers();
 }
@@ -435,7 +442,7 @@ function rotateTableButtonClick(e){
         rotateTable(e, tableWrapper, middleOfTableX, middleOfTableY);
     }
 
-    // cancel rotation on escape key
+    // cancel rotation on escape key, set original rotation
     function cancelRotation(e){
         if(e.key === 'Escape'){
             document.removeEventListener('mousemove', rotateTableHandler);
@@ -449,6 +456,8 @@ function rotateTableButtonClick(e){
     // finish rotation on click
     function finishRotation(e){
         e.stopImmediatePropagation();
+        // tabble rotation is done, because it's adjusted automatically during rotation
+        // adjust seat button rotations to new table rotation, for this take the inverse of the rotation
         Array.from(tableWrapper.children).slice(1).forEach(seat => {
             let inverseRotation = "rotate(" + String(-Number(tableWrapper.style.transform.replace("rotate(", "").replace("deg)", ""))) + "deg)";
             let originalInverseRotation = "rotate(" + String(-Number(originalRotation.replace("rotate(", "").replace("deg)", ""))) + "deg)";
@@ -494,7 +503,7 @@ function moveTableButtonClick(e){
         moveTable(e, table);
     }
 
-    // cancel move on escape key
+    // cancel move on escape key, set original position
     function cancelMove(e){
         if(e.key === 'Escape'){
             document.removeEventListener('mousemove', moveTableHandler);
@@ -546,6 +555,7 @@ function deleteTableButtonClick(_e){
             guests[guestNumber].seats = [];
         }
 
+        // remove table, update information
         table.remove();
         tableCount--;
         updateTableNumbers();
@@ -587,6 +597,7 @@ function cancelMoveGroup(e){
             document.getElementById(originalSeatAllocation[i]).dataset.guest = selectedGuestNumber;
         }
 
+        // reset variables, update seat colors and guest list
         guestMode = "default";
         selectedGuestNumber = null;
         updateTableSeatColors(null, null);
@@ -630,6 +641,7 @@ function cancelMovePerson(e){
         document.getElementById(originalSeatAllocation[0]).dataset.guest = selectedGuestNumber;
         guests[selectedGuestNumber].seats.push(originalSeatAllocation[0]);
 
+        // reset variables, update seat colors and guest list
         guestMode = "default";
         selectedGuestNumber = null;
         updateTableSeatColors(null, null);
@@ -709,7 +721,7 @@ function deletePersonFromButton(id){
         );
     }
 
-    // in this case the seat can be deleted without splitting the group
+    // in this case (amount of seats remains the same) the seat can be deleted without splitting the group
     let success = false;
     if(amount == guests[guestNumber].seats.length - 1){
         // remove seat from guest
@@ -722,6 +734,7 @@ function deletePersonFromButton(id){
         updateGuestListContent();
         success = true;
     }else{
+        // alert user that deleting this guest would split the group
         alert("Dieser Gast ist ein Verbindungsglied zwischen mehreren Gästen der Gruppe. Das Löschen dieses Gastes würde die Gruppe teilen. Bitte wählen Sie einen anderen Gast.");
     }
 
@@ -752,7 +765,7 @@ function removeActionButtonsForSeat(){
 
 
 function updateTableInformation(table, addNumberInfo){
-    // update table information element
+    // update table information element, with x, y and rotation
     let tableInformation = document.getElementById("table_information");
     if(tableInformation !== null){
         tableInformation.innerText = 
@@ -772,9 +785,11 @@ function removeTableInformation(){
 
 function updateTableNumbers(withoutGuestListUpdate = false){
     let tableNumber = 1;
+    // loop over all tables by their ids
     for(let i = 0; i < tableNextId; i++){
         let table = document.getElementById("table-" + i);
         if(table===null) continue
+        // it table exists -> check if it has a manual number, if so set it, if not set it to current table number counter
         let tableNumberInformation = document.getElementById("table_number_information-" + i);
         if(table.dataset.number==="null"){
             table.dataset.shownNumber = tableNumber;
@@ -782,6 +797,7 @@ function updateTableNumbers(withoutGuestListUpdate = false){
         }else{
             table.dataset.shownNumber = table.dataset.number;
         }
+        // adjust text
         tableNumberInformation.innerText = `Tisch ${table.dataset.shownNumber}`;
     }
 
@@ -833,6 +849,7 @@ function updateGuestList(){
         guest.appendChild(guestSeats);
     }
 
+    // update content, because it sets the text and colors based on the seat allocations
     updateGuestListContent();
 }
 
@@ -882,8 +899,10 @@ function updateGuestListContent(){
 
 
 function searchGuestList(_e){
+    // search term is lower case, because the search should be case insensitive, same for guest names
     let searchTerm = this.value.toLowerCase();
     for(let i = 0; i < guests.length; i++){
+        // check if input is part of the guest name, if so show this guest in the list, if not hide it
         if(guests[i].name.toLowerCase().includes(searchTerm)){
             document.getElementById("guest-" + i).style.display = "flex";
         }else{
@@ -898,7 +917,7 @@ function searchGuestList(_e){
 //
 function startGroupPlacement(_e){
     if(guestMode === "default"){
-        guestMode = "select_group";
+        guestMode = "select_group"; // next step is group select
         hideTableInteractionButtons();
         document.addEventListener('keydown', cancelPlacement);
     }else{
@@ -909,7 +928,7 @@ function startGroupPlacement(_e){
 
 function startPersonPlacement(_e){
     if(guestMode === "default"){
-        guestMode = "select_person";
+        guestMode = "select_person"; // next step is person select
         hideTableInteractionButtons();
         document.addEventListener('keydown', cancelPlacement);
     }else{
@@ -920,6 +939,7 @@ function startPersonPlacement(_e){
 
 function selectPersonFromGuestList(_e){
     if(guestMode === "select_group"){
+        // group cannot be placed if it is already or guest count is 0
         if(guests[this.id.split("-")[1]].seats.length !== 0){
             alert("Dieser Gruppe wurde bereits einen Sitzplatz zugewiesen. Bitte wählen Sie eine andere Person oder brechen Sie den Vorgang mit Escape ab.");
             return;
@@ -931,8 +951,9 @@ function selectPersonFromGuestList(_e){
         guestMode = "select_position_group";
         selectedGuestNumber = this.id.split("-")[1];
         document.getElementById(this.id).style.backgroundColor = "rgb(255, 160, 160)";
-        updateTableSeatColors(null, true);
+        updateTableSeatColors(null, true); // each guestMode has custom seat colors, so update them based on the new guestMode
     }else if(guestMode === "select_person"){
+        // cannot be placed if no person in group is assigned or unassigned
         if(guests[this.id.split("-")[1]].seats.length === 0){
             alert("Dieser Gruppe wurde noch keinem Sitzplatz zugewiesen. Nutzen Sie dafür die Gruppenplatzierung. Bitt wählen Sie eine andere Person oder brechen Sie den Vorgang mit Escape ab.");
             return;
@@ -944,7 +965,7 @@ function selectPersonFromGuestList(_e){
         guestMode = "select_position_person";
         selectedGuestNumber = this.id.split("-")[1];
         document.getElementById(this.id).style.backgroundColor = "rgb(255, 160, 160)";
-        updateTableSeatColors(null, true);
+        updateTableSeatColors(null, true); // each guestMode has custom seat colors, so update them based on the new guestMode
     }else if(guestMode === "default"){
         // scroll to seat of this guest, if there is one
         let guestNumber = this.id.split("-")[1];
@@ -1035,12 +1056,14 @@ function colorizeSeats(seats) {
 
 function updateTableSeatColors(tableId = null, doFullUpdate = false){
     let seats;
+    // get seats, if tableId is null get all seats, if not get only the seats of the table with the given id
     if(tableId === null){
         seats = document.querySelectorAll(".small_seat_interaction_button");
     }else{
         seats = document.getElementById(tableId).querySelectorAll(".small_seat_interaction_button");
     }
     if(guestMode === "default" || guestMode === "select_group" || guestMode === "select_person"){
+        // if no position select mode is active, get all occupied seats, and color them so no two neighbors have the same color
         let occupiedSeats = []
         for(let i = 0; i < seats.length; i++){
             let seat = seats[i];
@@ -1082,9 +1105,9 @@ function updateTableSeatColors(tableId = null, doFullUpdate = false){
             seat.dataset.floodFilled = "false";
 
             if(seat.dataset.guest === "null"){
-                seat.style.backgroundColor = "rgb(238, 238, 238)";
+                seat.style.backgroundColor = "rgb(238, 238, 238)"; // empty seats get gray background
             }else{
-                seat.style.backgroundColor = "rgb(255, 246, 168)";
+                seat.style.backgroundColor = "rgb(255, 246, 168)"; // occupied seats get yellow background
             }
         }
 
@@ -1218,6 +1241,7 @@ function toggleHighlight(e){
 
 function toggleHighlightGuestList(e){
     if(guestMode === "default" || guestMode === "select_group" || guestMode === "select_person"){
+        // if no position select mode is active, highlight guest seats and that correspond to the guest element hovered over
         let guestNumber = this.id.split("-")[1];
         let guestSeats = guests[guestNumber].seats;
         if(e.type === "mouseover"){
@@ -1242,6 +1266,8 @@ function finishGroupPlacement(seat){
             guests[selectedGuestNumber].seats.push(seats[i].id);
         }
     }
+
+    // reset values and colors, update guest list
     guestMode = "default";
     selectedGuestNumber = null;
     updateTableSeatColors(null, null);
@@ -1259,7 +1285,7 @@ function finishGroupPlacement(seat){
 
 
 function finishPersonPlacement(seat){
-    if(seat.style.backgroundColor !== "rgb(200, 255, 203)"){
+    if(seat.style.backgroundColor !== "rgb(200, 255, 203)"){ // check if seat is valid position -> just use color, because only valid positions are colored green
         alert("Dieser Sitzplatz ist kein Nachbar eines bereits zugewiesenen Sitzplatzes der Gruppe. Bitte wählen Sie einen anderen Sitzplatz (grün) oder brechen Sie den Vorgang mit Escape ab.");
         return;
     }
@@ -1268,6 +1294,7 @@ function finishPersonPlacement(seat){
     seat.dataset.guest = selectedGuestNumber;
     guests[selectedGuestNumber].seats.push(seat.id);
 
+    // reset values and colors, update guest list
     guestMode = "default";
     selectedGuestNumber = null;
     updateTableSeatColors(null, null);
@@ -1286,6 +1313,7 @@ function finishPersonPlacement(seat){
 function cancelPlacement(e){
     if(e.key === 'Escape'){
         if(guestMode === "select_position_group" || guestMode === "select_position_person"){
+            // reset values and colors, update guest list
             guestMode = "default";
             selectedGuestNumber = null;
             updateTableSeatColors(null, null);
@@ -1293,6 +1321,7 @@ function cancelPlacement(e){
         }else {
             guestMode = "default";
         }
+        // show buttons, remove event listener for cancel
         showTableInteractionButtons();
         document.removeEventListener('keydown', cancelPlacement);
     }
@@ -1303,8 +1332,10 @@ function cancelPlacement(e){
 // Import Guests from Excel
 //
 function importGuests(_e){
+    // warning
     if(!window.confirm("Die aktuellen Gäste werden durch die neuen ersetzt. Bisherige Zuordnungen werden entfernt. Möchten Sie fortfahren?")) return;
 
+    // get first file uploaded, end if none are
     let file = importGuestsFileInput.files[0]
     if(!file){
         alert("Bitte wählen Sie eine Datei zum Importieren aus.");
@@ -1346,8 +1377,10 @@ function importGuests(_e){
             });
         }
 
+        // update guest list to show new guests
         updateGuestList();
     };
+    // actually read the file and run onload function
     reader.readAsArrayBuffer(file);
 }
 
@@ -1356,6 +1389,7 @@ function importGuests(_e){
 // Exort / Import Layout
 //
 function verifyJSON(json){
+    // if important data is missing, alert user and return false, otherwise return true
     if(!json || !Array.isArray(json.tables) || !json.hasOwnProperty('tableCount') || !json.hasOwnProperty('tableNextId')){
         alert("Ungültige Layout-Daten.");
         return false;
@@ -1410,6 +1444,7 @@ async function importLayout(_e){
         }
     }
 
+    // update colors and guest list to reflect new layout and guest allocations
     updateTableNumbers(true);
     updateGuestList();
     updateTableSeatColors(null, null);
@@ -1468,6 +1503,7 @@ function exportLayout(){
 
 
 function exportSeating(){
+    // export seating data as json, for that loop over guests and extract name, table and seat numbers
     let seatingData = [];
     for(let i = 0; i < guests.length; i++){
         seatingData.push({
