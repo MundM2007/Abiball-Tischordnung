@@ -1177,7 +1177,6 @@ function toggleHighlight(e){
                 }
 
                 if(succesful){
-                    console.log("test")
                     // if so, color them and set flood filled, so they work on seat click
                     for (let seatNumber = offsetSeatNumber; seatNumber < offsetSeatNumber + guestCount; seatNumber++) {
                         document.getElementById(seatPrefix + "." + seatNumber).dataset.floodFilled = "true";
