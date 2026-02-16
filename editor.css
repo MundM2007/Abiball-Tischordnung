@@ -21,6 +21,7 @@
 .table {
     white-space: nowrap;
     position: absolute;
+    pointer-events: none;
 }
 
 .table_wrapper {
@@ -52,6 +53,7 @@
     border-radius: 20px;
     border-width: 2px;
     z-index: 10;
+    pointer-events: auto;
     -webkit-user-drag: none;
     user-select: none;
     -moz-user-select: none;
@@ -88,6 +90,7 @@
     border-radius: 15px;
     border-width: 1px;
     z-index: 5;
+    pointer-events: auto;
     -webkit-user-drag: none;
     user-select: none;
     -moz-user-select: none;
