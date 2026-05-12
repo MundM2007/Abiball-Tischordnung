@@ -2,13 +2,14 @@ const tableSegmentHeight = 100;
 const tableMiddleSegmentWidth = tableSegmentHeight * 70 / 230 // aspect ratio of table middle segment image;
 
 // always open elements
-const addTableButton = document.getElementById('add_table_button');
-const exportSeatingButton = document.getElementById('export_seating_button');
-const importGuestsButton = document.getElementById('import_guests_button');
 const importGuestsFileInput = document.getElementById('import_guests_file');
-const exportButton = document.getElementById('export_button');
-const importButton = document.getElementById('import_button');
+const importGuestsButton = document.getElementById('import_guests_button');
+const downloadExampleButton = document.getElementById('download_example_button');
 const importFileInput = document.getElementById('import_file');
+const importButton = document.getElementById('import_button');
+const exportButton = document.getElementById('export_button');
+const exportSeatingButton = document.getElementById('export_seating_button');
+const addTableButton = document.getElementById('add_table_button');
 const addGroupButton = document.getElementById('add_group_button');
 const addPersonButton = document.getElementById('add_person_button');
 const searchInput = document.getElementById('search_input');
@@ -27,11 +28,12 @@ let originalSeatAllocation = [];
 let unassignedGuestsFromGroupCount = 0;
 
 // add event listeners
-addTableButton.addEventListener('click', createTable);
-exportSeatingButton.addEventListener('click', downloadSeatingFile);
-exportButton.addEventListener('click', downloadLayoutFile);
 importGuestsButton.addEventListener('click', importGuests);
+downloadExampleButton.addEventListener('click', downloadExampleFile);
 importButton.addEventListener('click', importLayout);
+exportButton.addEventListener('click', downloadLayoutFile);
+exportSeatingButton.addEventListener('click', downloadSeatingFile);
+addTableButton.addEventListener('click', createTable);
 addGroupButton.addEventListener('click', startGroupPlacement);
 addPersonButton.addEventListener('click', startPersonPlacement);
 searchInput.addEventListener("input", searchGuestList);
@@ -1361,6 +1363,7 @@ function importGuests(_e){
 
         // construct guest names list
         for(let i = 0; i < data.length; i++){
+            if(data[i]['Name'] == "") continue;
             guest_names.push(data[i]['Name']);
         }
 
@@ -1532,6 +1535,15 @@ function downloadFile(file){
         URL.revokeObjectURL(link.href);
         link.parentNode.removeChild(link);
     }, 0);
+}
+
+
+function downloadExampleFile(_e){
+    fetch('https://mundm2007.github.io/Abiball-Tischordnung/data/example_file.xlsx')
+        .then(resp => resp.blob())
+        .then(blob => {
+            downloadFile(new File([blob], "Beispiel-Datei.xlsx"));
+        })
 }
 
 
