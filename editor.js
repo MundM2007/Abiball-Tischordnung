@@ -869,6 +869,7 @@ function updateGuestListContent(){
         // get neighbor names
         let neighbor1 = guests[i].neighbor1 !== null ? guests[guests[i].neighbor1].name : ""
         let neighbor2 = guests[i].neighbor2 !== null ? guests[guests[i].neighbor2].name : ""
+
         guestNeighbors.innerText = 
             // short neighbor names (only first name and first letter of last name) with fallback if no neighbor is wished
             `${neighbor1 == "" ? "Kein Wunsch" : neighbor1.substring(0, neighbor1.indexOf(",") + 3) + "."} und ` +
@@ -1334,6 +1335,11 @@ function cancelPlacement(e){
 // Import Guests from Excel
 //
 function importGuests(_e){
+    // disallow if a placement mode is active, cause it will continue the placement afterwards, leading to confusion and possibly errors, if index doesn't exist anymore
+    if(guestMode !== "default"){
+        alert("Es ist ein Platzierungsmodus aktiv. Währendessen können keine neuen Gäste importiert werden.");
+        return;
+    }
     // warning
     if(!window.confirm("Die aktuellen Gäste werden durch die neuen ersetzt. Bisherige Zuordnungen werden entfernt. Möchten Sie fortfahren?")) return;
 
@@ -1349,7 +1355,11 @@ function importGuests(_e){
     for(let i = 0; i < allSeats.length; i++){
         allSeats[i].dataset.guest = null;
         allSeats[i].dataset.floodFilled = "false";
+        allSeats[i].style.backgroundColor = "rgb(238, 238, 238)";
     }
+
+    // delete guests
+    guests = [];
 
     let reader = new FileReader();
     reader.onload = (e) => {
@@ -1359,18 +1369,16 @@ function importGuests(_e){
         let sheetName = workbook.SheetNames[0];
         let worksheet = workbook.Sheets[sheetName];
         let data = XLSX.utils.sheet_to_json(worksheet);
-        let guest_names = [];
 
-        // construct guest names list
-        for(let i = 0; i < data.length; i++){
-            if(data[i]['Name'] == "") continue;
-            guest_names.push(data[i]['Name']);
-        }
+        // keep only valid rows once, so indices do not shift while removing entries
+        data = data.filter(row => row.hasOwnProperty('Name') && row['Name'] !== "");
+        data = data.sort((a, b) => a["Name"].localeCompare(b["Name"], "de"));
+        let guest_names = data.map(row => row['Name']);
 
         // add relevant data to guests list
         for(let i = 0; i < data.length; i++){
-            let neighbor1 = data[i]['WunschNachbar1'];
-            let neighbor2 = data[i]['WunschNachbar2'];
+            let neighbor1 = data[i].hasOwnProperty('WunschNachbar1') ? data[i]['WunschNachbar1'] : "";
+            let neighbor2 = data[i].hasOwnProperty('WunschNachbar2') ? data[i]['WunschNachbar2'] : "";
             guests.push({
                 name: guest_names[i],
                 amountOfGuests: data[i]['Personenzahl'],
@@ -1409,6 +1417,11 @@ function verifyJSON(json){
 
 
 async function importLayout(_e){
+    // disallow if a placement mode is active, cause it will continue the placement afterwards, leading to confusion and possibly errors, if index doesn't exist anymore
+    if(guestMode !== "default"){
+        alert("Es ist ein Platzierungsmodus aktiv. Währendessen können keine neuen Gäste importiert werden.");
+        return;
+    }
     // confirm replacement, and remove existing tables
     if(!window.confirm("Das aktuelle Layout wird durch das importierte Layout ersetzt. Möchten Sie fortfahren?")) return;
     for(let i = 0; i < tableNextId; i++){
@@ -1542,7 +1555,7 @@ function downloadExampleFile(_e){
     fetch('https://mundm2007.github.io/Abiball-Tischordnung/data/example_file.xlsx')
         .then(resp => resp.blob())
         .then(blob => {
-            downloadFile(new File([blob], "Beispiel-Datei.xlsx"));
+            downloadFile(new File([blob], "Beispiel-Gäste-Datei.xlsx"));
         })
 }
 
