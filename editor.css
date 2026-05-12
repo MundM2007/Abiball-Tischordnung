@@ -245,6 +245,16 @@
     padding: 10px;
 }
 
+#add_group_button {
+    background-color: transparent;
+    background-image: url("./icons/add_group.svg");
+    background-size: cover;
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    border-width: 2px;
+}
+
 #add_person_button {
     background-color: transparent;
     background-image: url("./icons/add_person.svg");
@@ -255,9 +265,9 @@
     border-width: 2px;
 }
 
-#add_group_button {
+#delete_guest_button {
     background-color: transparent;
-    background-image: url("./icons/add_group.svg");
+    background-image: url("./icons/delete_group.svg");
     background-size: cover;
     width: 40px;
     height: 40px;

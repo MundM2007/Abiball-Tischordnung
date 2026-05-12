@@ -13,6 +13,7 @@ const exportSeatingButton = document.getElementById('export_seating_button');
 const addTableButton = document.getElementById('add_table_button');
 const addGroupButton = document.getElementById('add_group_button');
 const addPersonButton = document.getElementById('add_person_button');
+const deleteGuestButton = document.getElementById('delete_guest_button');
 const searchInput = document.getElementById('search_input');
 // track amount of tables and next table id
 let tableCount = 0;
@@ -22,7 +23,7 @@ let openInteractionButton = "";
 let openInteractionButtonType = "";
 // guest list
 let guests = [];
-let guestMode = "default"; // default, select_group, select_person, select_position_group, select_position_person
+let guestMode = "default"; // default, select_group, select_person, select_position_group, select_position_person, delete_guest
 let selectedGuestNumber = null;
 // temporary variable to store seat ids, unassigned guests count from a group
 let originalSeatAllocation = [];
@@ -38,6 +39,7 @@ exportSeatingButton.addEventListener('click', downloadSeatingFile);
 addTableButton.addEventListener('click', createTable);
 addGroupButton.addEventListener('click', startGroupPlacement);
 addPersonButton.addEventListener('click', startPersonPlacement);
+deleteGuestButton.addEventListener('click', startGuestDeletion);
 searchInput.addEventListener("input", searchGuestList);
 
 
@@ -942,6 +944,17 @@ function startPersonPlacement(_e){
 }
 
 
+function startGuestDeletion(_e){
+    if(guestMode === "default"){
+        guestMode = "delete_guest";
+        hideTableInteractionButtons();
+        document.addEventListener('keydown', cancelPlacement);
+    }else{
+        alert("Es ist bereits ein Platzierungsmodus aktiv. Bitte schließen Sie diesen zuerst ab oder brechen Sie ihn mit Escape ab.");
+    }
+}
+
+
 function selectPersonFromGuestList(_e){
     if(guestMode === "select_group"){
         // group cannot be placed if it is already or guest count is 0
@@ -971,6 +984,61 @@ function selectPersonFromGuestList(_e){
         selectedGuestNumber = this.id.split("-")[1];
         document.getElementById(this.id).style.backgroundColor = "rgb(255, 160, 160)";
         updateTableSeatColors(null, true); // each guestMode has custom seat colors, so update them based on the new guestMode
+    }else if(guestMode === "delete_guest"){
+        if(!window.confirm("Der Gast wird gelöscht. Sitzzuweisungen und Wünsch-Nachbarn werden ebenfalls gelöscht. Möchten Sie fortfahren?")) return;
+        let guestNumber = Number(this.id.split("-")[1]);
+
+        // delete guest from seats
+        let seats = guests[guestNumber].seats;
+        let tableId = seats.length > 0 ? seats[0].split("-")[1].split(".")[0] : null;
+        for(let i = 0; i < seats.length; i++){
+            let seat = document.getElementById(seats[i])
+            seat.dataset.guest = null;
+            seat.dataset.floodFilled = "false";
+            seat.style.backgroundColor = "rgb(238, 238, 238)";
+        }
+
+        // delete guest
+        guests.splice(guestNumber, 1);
+
+        // update neighbor ids and seat allocations for guests shifted by the deletion
+        for(let j = 0; j < guests.length; j++){
+            // update seat dataset.guest if this guest's index >= insertion point
+            if(j >= guestNumber){
+                for(let k = 0; k < guests[j].seats.length; k++){
+                    let seat = document.getElementById(guests[j].seats[k]);
+                    if(seat !== null){
+                        seat.dataset.guest = j;
+                    }
+                }
+            }
+
+            // update neighbor references if they point to indices > insertion point
+            if(guests[j].neighbor2 !== null){
+                if(guests[j].neighbor2 > guestNumber) guests[j].neighbor2--;
+                if(guests[j].neighbor2 === guestNumber) guests[j].neighbor2 = null;
+            }
+            if(guests[j].neighbor1 !== null){
+                if(guests[j].neighbor1 > guestNumber) guests[j].neighbor1--;
+                if(guests[j].neighbor1 === guestNumber){
+                    // if neighbor1 is the deleted guest, check if neighbor2 exists and set it as new neighbor1
+                    if(guests[j].neighbor2 !== null){
+                        guests[j].neighbor1 = guests[j].neighbor2;
+                        guests[j].neighbor2 = null;
+                    }else{
+                        guests[j].neighbor1 = null;
+                    }
+                }
+            }
+        }
+
+        // update colors for table and guest list
+        if(tableId !== null) updateTableSeatColors("table-" + tableId, null);
+        updateGuestList();
+
+        guestMode = "default";
+        showTableInteractionButtons();
+        document.removeEventListener('keydown', cancelPlacement); 
     }else if(guestMode === "default"){
         // scroll to seat of this guest, if there is one
         let guestNumber = this.id.split("-")[1];
@@ -1067,7 +1135,7 @@ function updateTableSeatColors(tableId = null, doFullUpdate = false){
     }else{
         seats = document.getElementById(tableId).querySelectorAll(".small_seat_interaction_button");
     }
-    if(guestMode === "default" || guestMode === "select_group" || guestMode === "select_person"){
+    if(guestMode === "default" || guestMode === "select_group" || guestMode === "select_person" || guestMode === "delete_guest"){
         // if no position select mode is active, get all occupied seats, and color them so no two neighbors have the same color
         let occupiedSeats = []
         for(let i = 0; i < seats.length; i++){
@@ -1160,7 +1228,7 @@ function updateTableSeatColors(tableId = null, doFullUpdate = false){
 
 
 function toggleHighlight(e){
-    if(guestMode === "default" || guestMode === "select_group" || guestMode === "select_person"){
+    if(guestMode === "default" || guestMode === "select_group" || guestMode === "select_person" || guestMode === "delete_guest"){
         if(e.type === "mouseover"){
             let seat = document.getElementById(this.id);
             if(seat.dataset.guest === "null") return;
@@ -1245,7 +1313,7 @@ function toggleHighlight(e){
 
 
 function toggleHighlightGuestList(e){
-    if(guestMode === "default" || guestMode === "select_group" || guestMode === "select_person"){
+    if(guestMode === "default" || guestMode === "select_group" || guestMode === "select_person" || guestMode === "delete_guest"){
         // if no position select mode is active, highlight guest seats and that correspond to the guest element hovered over
         let guestNumber = this.id.split("-")[1];
         let guestSeats = guests[guestNumber].seats;
@@ -1282,7 +1350,7 @@ function finishGroupPlacement(seat){
     // reset variables from movement
     originalSeatAllocation = [];
     unassignedGuestsFromGroupCount = 0;
-    // remove move group cancel event listener!
+    // remove move group cancel event listener
     document.removeEventListener('keydown', cancelMoveGroup);
     // and group placement event listener
     document.removeEventListener('keydown', cancelPlacement); 
@@ -1364,21 +1432,21 @@ function importGuests(_e){
         // keep only valid rows once, so indices do not shift while removing entries
         data = data.filter(row => row.hasOwnProperty('Name') && row['Name'] !== "");
         // get all guest names
-        let guest_names = data.map(row => row['Name']);
-        let existing_guest_names = guests.map(guest => guest.name).sort((a, b) => a.localeCompare(b, "de"));
-        let all_guest_names = [...new Set([...guest_names, ...existing_guest_names])].sort((a, b) => a.localeCompare(b, "de"));
+        let guestNames = data.map(row => row['Name']);
+        let existingGuestNames = guests.map(guest => guest.name).sort((a, b) => a.localeCompare(b, "de"));
+        let allGuestNames = [...new Set([...guestNames, ...existingGuestNames])].sort((a, b) => a.localeCompare(b, "de"));
 
         // add relevant data to guests list
         for(let i = 0; i < data.length; i++){
-            let guestIndex = existing_guest_names.indexOf(guest_names[i]);
+            let guestNumber = existingGuestNames.indexOf(guestNames[i]);
             let neighbor1 = data[i].hasOwnProperty('WunschNachbar1') ? data[i]['WunschNachbar1'] : "";
             let neighbor2 = data[i].hasOwnProperty('WunschNachbar2') ? data[i]['WunschNachbar2'] : "";
 
-            if(guestIndex !== -1){
+            if(guestNumber !== -1){
                 // if guest exists, update their data
-                guests[guestIndex].amountOfGuests = data[i]['Personenzahl'];
-                guests[guestIndex].neighbor1 = neighbor1 == "" ? null : all_guest_names.indexOf(neighbor1) == -1 ? null : all_guest_names.indexOf(neighbor1);
-                guests[guestIndex].neighbor2 = neighbor2 == "" ? null : all_guest_names.indexOf(neighbor2) == -1 ? null : all_guest_names.indexOf(neighbor2);
+                guests[guestNumber].amountOfGuests = data[i]['Personenzahl'];
+                guests[guestNumber].neighbor1 = neighbor1 == "" ? null : allGuestNames.indexOf(neighbor1) == -1 ? null : allGuestNames.indexOf(neighbor1);
+                guests[guestNumber].neighbor2 = neighbor2 == "" ? null : allGuestNames.indexOf(neighbor2) == -1 ? null : allGuestNames.indexOf(neighbor2);
             }else{
                 // if guest does not exist, find insertion index (binary search) and insert once
                 function findInsertIndex(array, value){
@@ -1392,22 +1460,22 @@ function importGuests(_e){
                     return lo;
                 }
 
-                let new_guest_index = findInsertIndex(existing_guest_names, guest_names[i]);
-                existing_guest_names.splice(new_guest_index, 0, guest_names[i]);
+                let newGuestNumber = findInsertIndex(existingGuestNames, guestNames[i]);
+                existingGuestNames.splice(newGuestNumber, 0, guestNames[i]);
 
                 // insert new guest at the correct index
-                guests.splice(new_guest_index, 0, {
-                    name: guest_names[i],
+                guests.splice(newGuestNumber, 0, {
+                    name: guestNames[i],
                     amountOfGuests: data[i]['Personenzahl'],
-                    neighbor1: neighbor1 == "" ? null : all_guest_names.indexOf(neighbor1) == -1 ? null : all_guest_names.indexOf(neighbor1),
-                    neighbor2: neighbor2 == "" ? null : all_guest_names.indexOf(neighbor2) == -1 ? null : all_guest_names.indexOf(neighbor2),
+                    neighbor1: neighbor1 == "" ? null : allGuestNames.indexOf(neighbor1) == -1 ? null : allGuestNames.indexOf(neighbor1),
+                    neighbor2: neighbor2 == "" ? null : allGuestNames.indexOf(neighbor2) == -1 ? null : allGuestNames.indexOf(neighbor2),
                     seats: []
                 });
 
                 // update neighbor ids and seat allocations for guests shifted by the insertion
                 for(let j = 0; j < guests.length; j++){
                     // update seat dataset.guest if this guest's index > insertion point
-                    if(j > new_guest_index){
+                    if(j > newGuestNumber){
                         for(let k = 0; k < guests[j].seats.length; k++){
                             let seat = document.getElementById(guests[j].seats[k]);
                             if(seat !== null){
@@ -1416,14 +1484,14 @@ function importGuests(_e){
                         }
                     }
 
-                    // if guest was in the guest file, their neighbor references will already be updated by all_guest_names, skip in that case
-                    if(guest_names.includes(guests[j].name)) continue;
+                    // if guest was in the guest file, their neighbor references will already be updated by allGuestNames, skip in that case
+                    if(guestNames.includes(guests[j].name)) continue;
 
                     // update neighbor references if they point to indices >= insertion point
-                    if(guests[j].neighbor1 !== null && guests[j].neighbor1 >= new_guest_index){
+                    if(guests[j].neighbor1 !== null && guests[j].neighbor1 >= newGuestNumber){
                         guests[j].neighbor1++;
                     }
-                    if(guests[j].neighbor2 !== null && guests[j].neighbor2 >= new_guest_index){
+                    if(guests[j].neighbor2 !== null && guests[j].neighbor2 >= newGuestNumber){
                         guests[j].neighbor2++;
                     }
                 }
