@@ -5,6 +5,7 @@ const tableMiddleSegmentWidth = tableSegmentHeight * 70 / 230 // aspect ratio of
 const importGuestsFileInput = document.getElementById('import_guests_file');
 const importGuestsButton = document.getElementById('import_guests_button');
 const downloadExampleButton = document.getElementById('download_example_button');
+const deleteGuestsButton = document.getElementById('delete_guests_button');
 const importFileInput = document.getElementById('import_file');
 const importButton = document.getElementById('import_button');
 const exportButton = document.getElementById('export_button');
@@ -30,6 +31,7 @@ let unassignedGuestsFromGroupCount = 0;
 // add event listeners
 importGuestsButton.addEventListener('click', importGuests);
 downloadExampleButton.addEventListener('click', downloadExampleFile);
+deleteGuestsButton.addEventListener('click', deleteGuests);
 importButton.addEventListener('click', importLayout);
 exportButton.addEventListener('click', downloadLayoutFile);
 exportSeatingButton.addEventListener('click', downloadSeatingFile);
@@ -87,7 +89,7 @@ function createTable(_e) {
 }
 
 
-function addTable(id, length, posLeft = "100px", posTop = "200px", rotation = "rotate(0deg)") {
+function addTable(id, length, posLeft = "50px", posTop = "260px", rotation = "rotate(0deg)") {
     // create table elements
     let table = document.createElement("div");
     table.setAttribute("id", "table-" + id);
@@ -1349,18 +1351,7 @@ function importGuests(_e){
         alert("Bitte wählen Sie eine Datei zum Importieren aus.");
         return;
     }
-/* 
-    // clear current guest allocations
-    let allSeats = document.querySelectorAll(".small_seat_interaction_button");
-    for(let i = 0; i < allSeats.length; i++){
-        allSeats[i].dataset.guest = null;
-        allSeats[i].dataset.floodFilled = "false";
-        allSeats[i].style.backgroundColor = "rgb(238, 238, 238)";
-    }
 
-    // delete guests
-    guests = [];
- */
     let reader = new FileReader();
     reader.onload = (e) => {
         // open workbook
@@ -1447,6 +1438,31 @@ function importGuests(_e){
 }
 
 
+function deleteGuests(_e){
+    // disallow if a placement mode is active, cause it will continue the placement afterwards, leading to confusion and possibly errors, if index doesn't exist anymore
+    if(guestMode !== "default"){
+        alert("Es ist ein Platzierungsmodus aktiv. Währendessen können Gäste nicht gelöscht werden.");
+        return;
+    }
+
+    // warning
+    if(!window.confirm("Alle Gäste und ihre Sitzplatzzuweisungen werden gelöscht. Möchten Sie fortfahren?")) return;
+
+    // clear current guest allocations
+    let allSeats = document.querySelectorAll(".small_seat_interaction_button");
+    for(let i = 0; i < allSeats.length; i++){
+        allSeats[i].dataset.guest = null;
+        allSeats[i].dataset.floodFilled = "false";
+        allSeats[i].style.backgroundColor = "rgb(238, 238, 238)";
+    }
+
+    // delete guests
+    guests = [];
+
+    // update guest list to show no guests
+    updateGuestList();
+}
+
 //
 // Exort / Import Layout
 //
@@ -1493,8 +1509,8 @@ async function importLayout(_e){
         addTable(
             table.id, 
             table.length, 
-            table.position?.left ?? "100px",
-            table.position?.top ?? "200px", 
+            table.position?.left ?? "50px",
+            table.position?.top ?? "260px", 
             table.rotation ?? "rotate(0deg)"
         );
         addTableInteractionButton(table.id);
