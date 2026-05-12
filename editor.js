@@ -1341,7 +1341,7 @@ function importGuests(_e){
         return;
     }
     // warning
-    if(!window.confirm("Die aktuellen Gäste werden durch die neuen ersetzt. Bisherige Zuordnungen werden entfernt. Möchten Sie fortfahren?")) return;
+    if(!window.confirm("Die Gäste werden importiert. Neue Gäste werden hinzugefügt, bestehende werden aktualisiert. Möchten Sie fortfahren?")) return;
 
     // get first file uploaded, end if none are
     let file = importGuestsFileInput.files[0]
@@ -1349,7 +1349,7 @@ function importGuests(_e){
         alert("Bitte wählen Sie eine Datei zum Importieren aus.");
         return;
     }
-
+/* 
     // clear current guest allocations
     let allSeats = document.querySelectorAll(".small_seat_interaction_button");
     for(let i = 0; i < allSeats.length; i++){
@@ -1360,7 +1360,7 @@ function importGuests(_e){
 
     // delete guests
     guests = [];
-
+ */
     let reader = new FileReader();
     reader.onload = (e) => {
         // open workbook
@@ -1372,20 +1372,71 @@ function importGuests(_e){
 
         // keep only valid rows once, so indices do not shift while removing entries
         data = data.filter(row => row.hasOwnProperty('Name') && row['Name'] !== "");
-        data = data.sort((a, b) => a["Name"].localeCompare(b["Name"], "de"));
+        // get all guest names
         let guest_names = data.map(row => row['Name']);
+        let existing_guest_names = guests.map(guest => guest.name).sort((a, b) => a.localeCompare(b, "de"));
+        let all_guest_names = [...new Set([...guest_names, ...existing_guest_names])].sort((a, b) => a.localeCompare(b, "de"));
 
         // add relevant data to guests list
         for(let i = 0; i < data.length; i++){
+            let guestIndex = existing_guest_names.indexOf(guest_names[i]);
             let neighbor1 = data[i].hasOwnProperty('WunschNachbar1') ? data[i]['WunschNachbar1'] : "";
             let neighbor2 = data[i].hasOwnProperty('WunschNachbar2') ? data[i]['WunschNachbar2'] : "";
-            guests.push({
-                name: guest_names[i],
-                amountOfGuests: data[i]['Personenzahl'],
-                neighbor1: neighbor1 == "" ? null : guest_names.indexOf(neighbor1) == -1 ? null : guest_names.indexOf(neighbor1),
-                neighbor2: neighbor2 == "" ? null : guest_names.indexOf(neighbor2) == -1 ? null : guest_names.indexOf(neighbor2),
-                seats: []
-            });
+
+            if(guestIndex !== -1){
+                // if guest exists, update their data
+                guests[guestIndex].amountOfGuests = data[i]['Personenzahl'];
+                guests[guestIndex].neighbor1 = neighbor1 == "" ? null : all_guest_names.indexOf(neighbor1) == -1 ? null : all_guest_names.indexOf(neighbor1);
+                guests[guestIndex].neighbor2 = neighbor2 == "" ? null : all_guest_names.indexOf(neighbor2) == -1 ? null : all_guest_names.indexOf(neighbor2);
+            }else{
+                // if guest does not exist, find insertion index (binary search) and insert once
+                function findInsertIndex(array, value){
+                    let lo = 0;
+                    let hi = array.length;
+                    while(lo < hi){
+                        let mid = (lo + hi) >> 1;
+                        if(array[mid].localeCompare(value, "de") < 0) lo = mid + 1;
+                        else hi = mid;
+                    }
+                    return lo;
+                }
+
+                let new_guest_index = findInsertIndex(existing_guest_names, guest_names[i]);
+                existing_guest_names.splice(new_guest_index, 0, guest_names[i]);
+
+                // insert new guest at the correct index
+                guests.splice(new_guest_index, 0, {
+                    name: guest_names[i],
+                    amountOfGuests: data[i]['Personenzahl'],
+                    neighbor1: neighbor1 == "" ? null : all_guest_names.indexOf(neighbor1) == -1 ? null : all_guest_names.indexOf(neighbor1),
+                    neighbor2: neighbor2 == "" ? null : all_guest_names.indexOf(neighbor2) == -1 ? null : all_guest_names.indexOf(neighbor2),
+                    seats: []
+                });
+
+                // update neighbor ids and seat allocations for guests shifted by the insertion
+                for(let j = 0; j < guests.length; j++){
+                    // update seat dataset.guest if this guest's index > insertion point
+                    if(j > new_guest_index){
+                        for(let k = 0; k < guests[j].seats.length; k++){
+                            let seat = document.getElementById(guests[j].seats[k]);
+                            if(seat !== null){
+                                seat.dataset.guest = j;
+                            }
+                        }
+                    }
+
+                    // if guest was in the guest file, their neighbor references will already be updated by all_guest_names, skip in that case
+                    if(guest_names.includes(guests[j].name)) continue;
+
+                    // update neighbor references if they point to indices >= insertion point
+                    if(guests[j].neighbor1 !== null && guests[j].neighbor1 >= new_guest_index){
+                        guests[j].neighbor1++;
+                    }
+                    if(guests[j].neighbor2 !== null && guests[j].neighbor2 >= new_guest_index){
+                        guests[j].neighbor2++;
+                    }
+                }
+            }
         }
 
         // update guest list to show new guests
